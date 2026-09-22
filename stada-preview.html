@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>استادا | پیش‌نمایش</title>
+  <title>استادا</title>
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
@@ -11,39 +11,22 @@
     <aside class="side">
       <div class="brand">استادا<br>مدیریت کنکور ارشد زیست/بیوتکنولوژی</div>
       <nav class="nav">
-        <a href="#" class="active" data-tab="dashboard">داشبورد</a>
-        <a href="#" data-tab="study">ثبت مطالعه</a>
-        <a href="#" data-tab="plan">برنامه</a>
-        <a href="#" data-tab="reviews">مرور</a>
-        <a href="#" data-tab="pomodoro">پومودورو</a>
-        <a href="#" data-tab="questions">بانک سوال</a>
-        <a href="#" data-tab="errors">دفترچه خطا</a>
-        <a href="#" data-tab="flashcards">فلش‌کارت</a>
-        <a href="#" data-tab="chat">دستیار AI</a>
-        <a href="#" data-tab="reports">گزارش</a>
+        <a href="#dashboard" class="active" data-tab="dashboard">داشبورد</a>
+        <a href="#study" data-tab="study">ثبت مطالعه</a>
+        <a href="#plan" data-tab="plan">برنامه</a>
+        <a href="#reviews" data-tab="reviews">مرور</a>
+        <a href="#pomodoro" data-tab="pomodoro">پومودورو</a>
+        <a href="#questions" data-tab="questions">بانک سوال</a>
+        <a href="#exam" data-tab="exam">آزمون</a>
+        <a href="#errors" data-tab="errors">دفترچه خطا</a>
+        <a href="#flashcards" data-tab="flashcards">فلش‌کارت</a>
+        <a href="#chat" data-tab="chat">دستیار AI</a>
+        <a href="#reports" data-tab="reports">گزارش</a>
+        <a href="#settings" data-tab="settings">تنظیمات</a>
       </nav>
     </aside>
     <main class="main">
-      <section data-panel="dashboard">
-        <div class="topbar"><div class="title"><h1>داشبورد امروز</h1><p>پیش‌نمایش استاتیک برای تست ظاهر و مسیرهای اصلی استادا.</p></div><span class="badge">نسخه تست Vercel</span></div>
-        <div class="grid">
-          <div class="card span-3 metric"><span>روز باقی‌مانده</span><b data-days>...</b><small>تا ۱۷ اردیبهشت ۱۴۰۶</small></div>
-          <div class="card span-3 metric"><span>مطالعه امروز</span><b>۳.۵h</b><small>۲۱۰ دقیقه</small></div>
-          <div class="card span-3 metric"><span>مرورهای باز</span><b>۷</b><small>مبحث، خطا، فلش‌کارت</small></div>
-          <div class="card span-3 metric"><span>آمادگی</span><b>۴۶٪</b><div class="progress"><i style="width:46%"></i></div></div>
-          <div class="card span-6"><h2>برنامه امروز</h2><div class="list"><div class="item"><strong>بیوشیمی / آنزیم‌ها</strong><span class="small">۹۰ دقیقه مطالعه و ۲۰ تست</span></div><div class="item"><strong>ژنتیک / جمعیت</strong><span class="small">مرور خطاهای هفته قبل</span></div></div></div>
-          <div class="card span-6"><h2>رادار خطاها</h2><div class="list"><div class="item"><strong>خطای تکراری: دام تستی در PCR</strong><span class="small">پیشنهاد: ۳ فلش‌کارت و آزمون ۱۰ سوالی</span></div><div class="item"><strong>مرور عقب‌افتاده: ترجمه و تنظیم بیان ژن</strong><span class="small">اولویت بالا</span></div></div></div>
-        </div>
-      </section>
-      <section data-panel="study" style="display:none"><div class="title"><h1>ثبت مطالعه</h1><p>در نسخه اصلی، ثبت مطالعه مرورهای آینده و تسلط مبحث را تغییر می‌دهد.</p></div><div class="grid"><form class="card span-5"><div class="form-grid"><label>درس<select><option>بیوشیمی</option><option>ژنتیک</option></select></label><label>مبحث<select><option>آنزیم‌ها</option><option>PCR</option></select></label><label>مدت<input value="60"></label><label>نوع<select><option>مطالعه</option><option>تست</option><option>مرور</option></select></label><label>یادداشت<textarea></textarea></label></div><button class="btn" type="button">ثبت نمایشی</button></form><div class="card span-7"><h2>آخرین مطالعه‌ها</h2><div class="list"><div class="item"><strong>بیوشیمی / متابولیسم</strong><span class="small">۷۵ دقیقه</span></div></div></div></div></section>
-      <section data-panel="plan" style="display:none"><div class="title"><h1>برنامه‌ریزی</h1></div><div class="card"><div class="list"><div class="item"><strong>برنامه جبران عقب‌افتادگی</strong><span class="small">حذف مرور کم‌اولویت، نگه‌داشتن تست‌های بیوتکنولوژی</span></div><div class="item"><strong>برنامه هفته</strong><span class="small">بیوشیمی ۶ ساعت، سلولی مولکولی ۵ ساعت، ژنتیک ۴ ساعت</span></div></div></div></section>
-      <section data-panel="reviews" style="display:none"><div class="title"><h1>مرور فاصله‌دار</h1></div><div class="card"><div class="list"><div class="item"><strong>فلش‌کارت #۱۲</strong><span class="small">سررسید امروز</span></div><div class="item"><strong>خطا #۸</strong><span class="small">بی‌دقتی در سوال محاسباتی</span></div></div></div></section>
-      <section data-panel="pomodoro" style="display:none"><div class="title"><h1>تایمر پومودورو</h1></div><div class="grid"><div class="card span-6 timer"><div><div class="time" data-timer>25:00</div><div class="actions"><button class="btn" onclick="startTimer()">شروع</button><button class="btn secondary" onclick="pauseTimer()">مکث</button><button class="btn secondary" onclick="resetTimer()">ریست</button></div></div></div><div class="card span-6"><h2>ثبت بعد از پایان</h2><p class="small">در نسخه اصلی این زمان به درس/مبحث وصل می‌شود.</p></div></div></section>
-      <section data-panel="questions" style="display:none"><div class="title"><h1>بانک سوال</h1><p>سوال‌های واقعی مولفان و کنکور، نه سوال‌های سطحی تولیدی.</p></div><div class="grid"><div class="card span-6"><h2>ورود گروهی</h2><textarea placeholder="هر سوال را با خط خالی جدا کن"></textarea><button class="btn" type="button">ورود نمایشی</button></div><div class="card span-6"><h2>بازبینی دسته‌بندی</h2><div class="item"><strong>سوال PCR</strong><span class="small">پیشنهاد AI: بیوتکنولوژی / PCR / متوسط</span></div></div></div></section>
-      <section data-panel="errors" style="display:none"><div class="title"><h1>دفترچه خطاها</h1></div><div class="card"><div class="list"><div class="item"><strong>فراموشی تفاوت Km و Vmax</strong><span class="small">نوع: مفهومی، وضعیت: تکرارشونده</span></div><div class="item"><strong>دام گزینه‌ای در وکتورها</strong><span class="small">تبدیل‌شده به فلش‌کارت</span></div></div></div></section>
-      <section data-panel="flashcards" style="display:none"><div class="title"><h1>فلش‌کارت</h1></div><div class="grid"><div class="card span-6"><strong>روی کارت</strong><p>PCR چه مرحله‌هایی دارد؟</p></div><div class="card span-6"><strong>پشت کارت</strong><p>دناتوراسیون، اتصال پرایمر، طویل‌سازی.</p></div></div></section>
-      <section data-panel="chat" style="display:none"><div class="title"><h1>دستیار AI</h1></div><div class="card"><div class="chat-box"><div class="msg user">از خطاهای آزمون امروز فلش‌کارت بساز.</div><div class="msg assistant">در نسخه اصلی، پاسخ اینجا از OpenAI API سمت سرور می‌آید و ذخیره می‌شود.</div></div></div></section>
-      <section data-panel="reports" style="display:none"><div class="title"><h1>گزارش</h1></div><div class="grid"><div class="card span-6"><h2>مباحث پرریسک</h2><div class="item"><strong>تنظیم بیان ژن</strong><div class="progress"><i style="width:34%"></i></div></div></div><div class="card span-6"><h2>آزمون‌های اخیر</h2><div class="item"><strong>آزمون بیوشیمی</strong><span class="small">۱۲ از ۲۰</span></div></div></div></section>
+      <section id="app"></section>
     </main>
   </div>
   <script src="assets/preview.js"></script>
