@@ -1,0 +1,65 @@
+:root {
+  --ink: #17201b;
+  --muted: #607064;
+  --line: #dce5dc;
+  --paper: #f7f3e8;
+  --panel: #fffdf7;
+  --green: #27735b;
+  --green-2: #d9eee5;
+  --blue: #1b5d89;
+  --amber: #c98223;
+  --red: #b54444;
+  --shadow: 0 18px 45px rgba(33, 47, 38, .10);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  direction: rtl;
+  font-family: Tahoma, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    linear-gradient(135deg, rgba(39,115,91,.10), transparent 34%),
+    linear-gradient(225deg, rgba(201,130,35,.12), transparent 32%),
+    var(--paper);
+}
+
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; }
+.shell { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+.side { background: #17201b; color: #f7f3e8; padding: 24px 18px; position: sticky; top: 0; height: 100vh; }
+.brand { font-size: 20px; font-weight: 800; line-height: 1.7; margin-bottom: 24px; }
+.nav { display: grid; gap: 8px; }
+.nav a { padding: 11px 12px; border-radius: 8px; color: rgba(247,243,232,.80); }
+.nav a.active, .nav a:hover { background: rgba(247,243,232,.12); color: #fff; }
+.main { padding: 28px; max-width: 1320px; width: 100%; }
+.topbar { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 22px; }
+.title h1 { margin: 0 0 8px; font-size: 30px; }
+.title p { color: var(--muted); margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+.card { background: var(--panel); border: 1px solid rgba(23,32,27,.08); border-radius: 8px; padding: 18px; box-shadow: var(--shadow); }
+.span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; } .span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; } .span-7 { grid-column: span 7; } .span-8 { grid-column: span 8; } .span-12 { grid-column: span 12; }
+.metric { display: grid; gap: 8px; }
+.metric b { font-size: 30px; }
+.metric span, .small { color: var(--muted); font-size: 13px; }
+.badge { display: inline-flex; align-items: center; min-height: 28px; padding: 3px 10px; border-radius: 999px; background: var(--green-2); color: var(--green); font-size: 13px; font-weight: 700; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
+input, select, textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 11px 12px; color: var(--ink); }
+textarea { min-height: 96px; resize: vertical; }
+.btn { border: 0; border-radius: 8px; background: var(--green); color: #fff; padding: 11px 15px; cursor: pointer; font-weight: 800; }
+.btn.secondary { background: #e8eadf; color: var(--ink); }
+.actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.list { display: grid; gap: 10px; }
+.item { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 12px; }
+.item strong { display: block; margin-bottom: 6px; }
+.progress { height: 10px; background: #ece9dd; border-radius: 999px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--green), var(--blue)); }
+.timer { display: grid; place-items: center; min-height: 220px; text-align: center; }
+.timer .time { font-size: 56px; font-weight: 900; direction: ltr; }
+.chat-box { height: 460px; overflow: auto; display: grid; gap: 10px; align-content: start; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.msg { max-width: 82%; padding: 12px; border-radius: 8px; line-height: 1.8; }
+.msg.user { margin-right: auto; background: #eaf2ff; }
+.msg.assistant { margin-left: auto; background: #eef6ed; }
+@media (max-width: 920px) { .shell { grid-template-columns: 1fr; } .side { position: relative; height: auto; } .nav { grid-template-columns: repeat(2, 1fr); } .main { padding: 18px; } .span-3, .span-4, .span-5, .span-6, .span-7, .span-8 { grid-column: span 12; } .form-grid { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; } }
