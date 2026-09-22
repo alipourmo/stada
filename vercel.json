@@ -1,5 +1,10 @@
 {
   "buildCommand": "node build-preview.js",
   "outputDirectory": "preview_dist",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "functions": {
+    "api/ai.js": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }
