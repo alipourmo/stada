@@ -1,8 +1,6 @@
-*
-!package.json
-!vercel.json
-!build-preview.js
-!stada-preview.html
-!stada-preview.js
-!stada-preview.css
-!api/**
+konkur-mvp-public_html-upload.zip
+konkur-mvp/**
+public_html/config.php
+sources/**
+*.zip
+.env
