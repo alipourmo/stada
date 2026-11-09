@@ -2,7 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  Palette,
+  Pencil,
+  Plus,
+  Settings,
+  Sparkles,
+  Trash2,
+  UserCheck,
+  X,
+} from "lucide-react";
 import {
   formatJalaliDate,
   STUDY_FIELD_PRESETS,
@@ -11,6 +22,7 @@ import {
   toFaDigits,
 } from "@/lib/constants";
 import type { StadaSubject } from "@/lib/db";
+import SubjectIcon, { SUBJECT_ICON_LABELS } from "./SubjectIcon";
 
 interface SettingsClientProps {
   user: {
@@ -29,7 +41,6 @@ export default function SettingsClient({
 }: SettingsClientProps) {
   const router = useRouter();
 
-  // Profile form state
   const [name, setName] = useState(user.name);
   const matchingPreset = STUDY_FIELD_PRESETS.find(
     (p) => p.label === user.study_field
@@ -44,18 +55,16 @@ export default function SettingsClient({
   const [targetHours, setTargetHours] = useState(String(user.target_hours));
   const [savingProfile, setSavingProfile] = useState(false);
 
-  // Subjects state
   const [subjects, setSubjects] = useState<StadaSubject[]>(initialSubjects);
   const [newSubName, setNewSubName] = useState("");
   const [newSubColor, setNewSubColor] = useState(SUBJECT_COLOR_PALETTE[0]);
-  const [newSubIcon, setNewSubIcon] = useState("📘");
+  const [newSubIcon, setNewSubIcon] = useState("book");
   const [addingSub, setAddingSub] = useState(false);
 
-  // Inline editing subject
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("#00ffa3");
-  const [editIcon, setEditIcon] = useState("📘");
+  const [editIcon, setEditIcon] = useState("book");
 
   const [toast, setToast] = useState<{
     type: "ok" | "err";
@@ -91,7 +100,7 @@ export default function SettingsClient({
       if (!res.ok) {
         notify("err", data.error || "خطا در ذخیره پروفایل");
       } else {
-        notify("ok", "تنظیمات پروفایل و آزمون هدف با موفقیت ذخیره شد ✓");
+        notify("ok", "تنظیمات پروفایل و آزمون هدف با موفقیت ذخیره شد");
         router.refresh();
       }
     } catch {
@@ -121,13 +130,12 @@ export default function SettingsClient({
       } else {
         setSubjects((prev) => [...prev, data.subject]);
         setNewSubName("");
-        // Pick next unused color from palette automatically
         const nextColor =
           SUBJECT_COLOR_PALETTE[
             (subjects.length + 1) % SUBJECT_COLOR_PALETTE.length
           ];
         setNewSubColor(nextColor);
-        notify("ok", `درس «${data.subject.name}» اضافه شد ✓`);
+        notify("ok", `درس «${data.subject.name}» اضافه شد`);
         router.refresh();
       }
     } catch {
@@ -141,7 +149,9 @@ export default function SettingsClient({
     setEditingId(s.id);
     setEditName(s.name);
     setEditColor(s.color);
-    setEditIcon(s.icon);
+    setEditIcon(
+      SUBJECT_ICON_PALETTE.includes(s.icon) ? s.icon : "book"
+    );
   }
 
   async function saveEditSubject(id: number) {
@@ -165,7 +175,7 @@ export default function SettingsClient({
         setEditingId(null);
         notify(
           "ok",
-          `درس «${data.subject.name}» و رنگ آن در تمام نمودارها بروزرسانی شد ✓`
+          `درس «${data.subject.name}» و رنگ آن در تمام نمودارها بروزرسانی شد`
         );
         router.refresh();
       }
@@ -205,7 +215,7 @@ export default function SettingsClient({
       const data = await res.json();
       if (res.ok && data.subjects) {
         setSubjects(data.subjects);
-        notify("ok", "دروس پیشنهادی رشته بارگذاری شدند ✓");
+        notify("ok", "دروس پیشنهادی رشته بارگذاری شدند");
         router.refresh();
       }
     } catch {
@@ -214,10 +224,11 @@ export default function SettingsClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <div>
-        <h1 className="text-xl font-extrabold text-slate-100 sm:text-[22px]">
-          ⚙️ پروفایل، رشته تحصیلی و مدیریت دروس
+        <h1 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-100 sm:text-[22px]">
+          <Settings className="h-5 w-5 text-[#00ffa3]" />
+          <span>پروفایل، رشته تحصیلی و مدیریت دروس</span>
         </h1>
         <p className="mt-1 text-xs text-slate-400 sm:text-[13px]">
           رشته تحصیلی، تاریخ آزمون هدف و دروس اختصاصی خود را به همراه رنگ دلخواه
@@ -227,22 +238,24 @@ export default function SettingsClient({
 
       {toast && (
         <div
-          className={`rounded-xl border px-4 py-3 text-xs font-medium ${
+          className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-xs font-medium ${
             toast.type === "ok"
               ? "border-[#00ffa3]/30 bg-[#00ffa3]/10 text-[#00ffa3]"
               : "border-red-500/30 bg-red-500/10 text-red-300"
           }`}
         >
-          {toast.text}
+          {toast.type === "ok" && <CheckCircle2 className="h-4 w-4 shrink-0" />}
+          <span>{toast.text}</span>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Profile & Exam Config (5 cols) */}
-        <div className="bt-card p-5 sm:p-6 lg:col-span-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-100">
-              👤 مشخصات فردی و آزمون هدف
+        <div className="bt-card p-4 sm:p-6 lg:col-span-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-100">
+              <UserCheck className="h-4 w-4 text-[#00ffa3]" />
+              <span>مشخصات فردی و آزمون هدف</span>
             </h2>
             <span className="text-[11px] text-slate-500" dir="ltr">
               {user.email}
@@ -287,7 +300,7 @@ export default function SettingsClient({
                 <input
                   type="text"
                   required
-                  placeholder="عنوان رشته یا آزمون خود را وارد کنید (مثلاً: دکتری داروسازی)"
+                  placeholder="عنوان رشته یا آزمون خود را وارد کنید"
                   value={customField}
                   onChange={(e) => setCustomField(e.target.value)}
                   className="bt-input mt-2.5"
@@ -352,9 +365,10 @@ export default function SettingsClient({
                 <button
                   type="button"
                   onClick={() => handleLoadPreset(false)}
-                  className="cursor-pointer rounded-lg border border-[#00d4ff]/30 bg-[#00d4ff]/10 px-3 py-1.5 text-xs font-semibold text-[#00d4ff] transition hover:bg-[#00d4ff]/20"
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-[#00d4ff]/30 bg-[#00d4ff]/10 px-3 py-1.5 text-xs font-semibold text-[#00d4ff] transition hover:bg-[#00d4ff]/20"
                 >
-                  + افزودن دروس این رشته
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>افزودن دروس این رشته</span>
                 </button>
                 <button
                   type="button"
@@ -369,30 +383,32 @@ export default function SettingsClient({
         </div>
 
         {/* Subjects & Colors Manager (7 cols) */}
-        <div className="bt-card p-5 sm:p-6 lg:col-span-7">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-bold text-slate-100">
-                🎨 دروس من و رنگ اختصاصی در نمودارها (
-                {toFaDigits(subjects.length)})
-              </h2>
-              <p className="mt-0.5 text-[11px] text-slate-400">
-                رنگ هر درس مستقیماً در نمودارهای گزارش، برنامه هفتگی و تایمر
-                پومودورو نمایش داده می‌شود
-              </p>
-            </div>
+        <div className="bt-card p-4 sm:p-6 lg:col-span-7">
+          <div className="mb-4">
+            <h2 className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-100">
+              <Palette className="h-4 w-4 text-[#00d4ff]" />
+              <span>
+                دروس من و رنگ اختصاصی در نمودارها ({toFaDigits(subjects.length)}
+                )
+              </span>
+            </h2>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              رنگ هر درس مستقیماً در نمودارهای گزارش، برنامه هفتگی و تایمر
+              پومودورو نمایش داده می‌شود
+            </p>
           </div>
 
           {/* Add New Subject Form */}
           <form
             onSubmit={handleAddSubject}
-            className="mb-5 rounded-2xl border border-white/10 bg-white/[0.02] p-4"
+            className="mb-5 rounded-2xl border border-white/10 bg-white/[0.02] p-3.5 sm:p-4"
           >
-            <div className="mb-3 text-xs font-semibold text-[#00ffa3]">
-              ➕ تعریف درس جدید
+            <div className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#00ffa3]">
+              <Plus className="h-4 w-4" />
+              <span>تعریف درس جدید</span>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
-              <div className="sm:col-span-6">
+              <div className="sm:col-span-5">
                 <label className="mb-1 block text-[11px] text-slate-400">
                   نام درس
                 </label>
@@ -400,25 +416,25 @@ export default function SettingsClient({
                   type="text"
                   required
                   maxLength={100}
-                  placeholder="مثلاً: فیزیک پایه، حسابان، شیمی آلی..."
+                  placeholder="مثلاً: فیزیک پایه، حسابان، شیمی..."
                   value={newSubName}
                   onChange={(e) => setNewSubName(e.target.value)}
                   className="bt-input text-xs"
                 />
               </div>
 
-              <div className="sm:col-span-3">
+              <div className="sm:col-span-4">
                 <label className="mb-1 block text-[11px] text-slate-400">
-                  آیکون
+                  آیکون درس
                 </label>
                 <select
                   value={newSubIcon}
                   onChange={(e) => setNewSubIcon(e.target.value)}
-                  className="bt-input bg-[#0f172a] text-center text-sm"
+                  className="bt-input bg-[#0f172a] text-xs"
                 >
                   {SUBJECT_ICON_PALETTE.map((ic) => (
                     <option key={ic} value={ic} className="bg-[#0f172a]">
-                      {ic}
+                      {SUBJECT_ICON_LABELS[ic] || ic}
                     </option>
                   ))}
                 </select>
@@ -485,15 +501,15 @@ export default function SettingsClient({
                   style={{ borderColor: `${s.color}35` }}
                 >
                   {isEditing ? (
-                    <div className="flex w-full flex-wrap items-center gap-2.5">
+                    <div className="flex w-full flex-wrap items-center gap-2">
                       <select
                         value={editIcon}
                         onChange={(e) => setEditIcon(e.target.value)}
-                        className="rounded-lg border border-white/15 bg-[#0f172a] px-2 py-1.5 text-sm"
+                        className="rounded-lg border border-white/15 bg-[#0f172a] px-2 py-1.5 text-xs text-slate-200"
                       >
                         {SUBJECT_ICON_PALETTE.map((ic) => (
                           <option key={ic} value={ic}>
-                            {ic}
+                            {SUBJECT_ICON_LABELS[ic] || ic}
                           </option>
                         ))}
                       </select>
@@ -502,7 +518,7 @@ export default function SettingsClient({
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="bt-input min-w-[140px] flex-1 py-1.5 text-xs"
+                        className="bt-input min-w-[130px] flex-1 py-1.5 text-xs"
                       />
 
                       <input
@@ -513,7 +529,7 @@ export default function SettingsClient({
                       />
 
                       <div className="flex items-center gap-1">
-                        {SUBJECT_COLOR_PALETTE.slice(0, 8).map((c) => (
+                        {SUBJECT_COLOR_PALETTE.slice(0, 7).map((c) => (
                           <button
                             key={c}
                             type="button"
@@ -545,20 +561,21 @@ export default function SettingsClient({
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
                         <span
-                          className="h-4 w-4 shrink-0 rounded-full shadow"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                           style={{
-                            backgroundColor: s.color,
-                            boxShadow: `0 0 10px ${s.color}66`,
+                            backgroundColor: `${s.color}20`,
+                            color: s.color,
                           }}
-                        />
-                        <span className="text-base">{s.icon}</span>
-                        <span className="text-sm font-bold text-slate-100">
+                        >
+                          <SubjectIcon icon={s.icon} className="h-4 w-4" />
+                        </span>
+                        <span className="truncate text-sm font-bold text-slate-100">
                           {s.name}
                         </span>
                         <span
-                          className="rounded-md px-2 py-0.5 font-mono text-[10px]"
+                          className="hidden rounded-md px-2 py-0.5 font-mono text-[10px] sm:inline"
                           style={{
                             backgroundColor: `${s.color}18`,
                             color: s.color,
@@ -569,7 +586,7 @@ export default function SettingsClient({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => startEditing(s)}

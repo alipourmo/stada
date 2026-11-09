@@ -14,14 +14,14 @@ export default async function ProtectedLayout({
   const daysLeft = getDaysLeft(user.target_exam_date || DEFAULT_EXAM_DATE);
 
   return (
-    <div className="min-h-screen pb-22 xl:pb-10">
+    <div className="min-h-screen pb-24 xl:pb-10">
       <Navbar
         firstName={firstName}
         studyField={user.study_field}
         initialStreak={user.streak}
         initialDaysLeft={daysLeft}
       />
-      <main className="mx-auto max-w-[1260px] px-4 py-6 sm:px-6 sm:py-7">
+      <main className="mx-auto max-w-[1260px] px-3.5 py-4 sm:px-6 sm:py-7">
         {children}
       </main>
     </div>

@@ -3,12 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  CalendarPlus,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Circle,
   ClipboardCheck,
   Plus,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import {
@@ -21,6 +26,7 @@ import {
   toFaDigits,
 } from "@/lib/constants";
 import type { StadaSubject, StadaWeeklyPlan } from "@/lib/db";
+import SubjectIcon from "./SubjectIcon";
 
 interface PlannerClientProps {
   subjects: StadaSubject[];
@@ -43,8 +49,7 @@ export default function PlannerClient({
   const [plans, setPlans] = useState<StadaWeeklyPlan[]>(initialPlans);
   const [loadingWeek, setLoadingWeek] = useState(false);
 
-  // Add Plan Form state
-  const [selectedDayIdx, setSelectedDayIdx] = useState(0); // 0 = شنبه
+  const [selectedDayIdx, setSelectedDayIdx] = useState(0);
   const [subjectId, setSubjectId] = useState<number>(subjects[0]?.id ?? 0);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("11:00");
@@ -96,7 +101,6 @@ export default function PlannerClient({
     setPlans(initialPlans);
   }, [initialPlans]);
 
-  // Summary of planned hours per subject in this week
   const weekSummary = useMemo(() => {
     let totalMins = 0;
     let completedMins = 0;
@@ -183,7 +187,7 @@ export default function PlannerClient({
         setSourceNote("");
         setFeedback({
           type: "ok",
-          text: `به برنامه روز ${IRANIAN_WEEKDAYS[selectedDayIdx].full} اضافه شد ✓`,
+          text: `به برنامه روز ${IRANIAN_WEEKDAYS[selectedDayIdx].full} اضافه شد`,
         });
       }
     } catch {
@@ -205,7 +209,6 @@ export default function PlannerClient({
         body: JSON.stringify({ is_completed: nextVal }),
       });
     } catch {
-      // revert on failure
       setPlans((prev) =>
         prev.map((p) =>
           p.id === plan.id ? { ...p, is_completed: plan.is_completed } : p
@@ -229,43 +232,47 @@ export default function PlannerClient({
   const isNextWeek = weekStartIso === nextWeekStartIso;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header & Week Selector */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-3.5 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-100 sm:text-[22px]">
-            📅 برنامه‌ریزی هفتگی مطالعه
+          <h1 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-100 sm:text-[22px]">
+            <CalendarDays className="h-5 w-5 text-[#00ffa3]" />
+            <span>برنامه‌ریزی هفتگی مطالعه</span>
           </h1>
           <p className="mt-1 text-xs text-slate-400 sm:text-[13px]">
             تعریف ساعت‌های دقیق مطالعه دروس و مباحث برای هفته جاری و هفته پیش رو
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => loadWeek(currentWeekStartIso)}
-            className={`cursor-pointer rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
-              isCurrentWeek
-                ? "border-[#00d4ff]/40 bg-[#00d4ff]/15 text-[#00d4ff]"
-                : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            هفته جاری
-          </button>
-          <button
-            type="button"
-            onClick={() => loadWeek(nextWeekStartIso)}
-            className={`cursor-pointer rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
-              isNextWeek
-                ? "border-[#00ffa3]/40 bg-[#00ffa3]/15 text-[#00ffa3]"
-                : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            🚀 هفته پیش رو
-          </button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <button
+              type="button"
+              onClick={() => loadWeek(currentWeekStartIso)}
+              className={`cursor-pointer rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
+                isCurrentWeek
+                  ? "border-[#00d4ff]/40 bg-[#00d4ff]/15 text-[#00d4ff]"
+                  : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              هفته جاری
+            </button>
+            <button
+              type="button"
+              onClick={() => loadWeek(nextWeekStartIso)}
+              className={`inline-flex cursor-pointer items-center justify-center gap-1 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
+                isNextWeek
+                  ? "border-[#00ffa3]/40 bg-[#00ffa3]/15 text-[#00ffa3]"
+                  : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>هفته پیش رو</span>
+            </button>
+          </div>
 
-          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-2 py-1">
+          <div className="flex items-center justify-between gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-2 py-1.5">
             <button
               type="button"
               onClick={() => loadWeek(shiftDateISO(weekStartIso, -7))}
@@ -290,10 +297,11 @@ export default function PlannerClient({
       </div>
 
       {/* Add Study Block Form */}
-      <div className="bt-card p-5 sm:p-6">
+      <div className="bt-card p-4 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-bold text-slate-100">
-            ➕ افزودن باکس مطالعه به برنامه هفتگی
+          <span className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-100">
+            <CalendarPlus className="h-4 w-4 text-[#00ffa3]" />
+            <span>افزودن باکس مطالعه به برنامه هفتگی</span>
           </span>
           {plannedMinsPreview > 0 && (
             <span className="rounded-full bg-[#00ffa3]/12 px-3 py-1 text-xs font-bold text-[#00ffa3]">
@@ -305,13 +313,16 @@ export default function PlannerClient({
 
         {feedback && (
           <div
-            className={`mb-4 rounded-xl border px-3.5 py-2.5 text-xs ${
+            className={`mb-4 flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-xs ${
               feedback.type === "ok"
                 ? "border-[#00ffa3]/30 bg-[#00ffa3]/10 text-[#00ffa3]"
                 : "border-red-500/30 bg-red-500/10 text-red-300"
             }`}
           >
-            {feedback.text}
+            {feedback.type === "ok" && (
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+            )}
+            <span>{feedback.text}</span>
           </div>
         )}
 
@@ -319,9 +330,9 @@ export default function PlannerClient({
           {/* Day of week pills */}
           <div>
             <label className="mb-2 block text-xs font-medium text-slate-400">
-              انتخاب روز هفته
+              ۱. انتخاب روز هفته
             </label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-7">
+            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7 sm:gap-2">
               {weekDays.map((d) => {
                 const active = selectedDayIdx === d.index;
                 return (
@@ -329,7 +340,7 @@ export default function PlannerClient({
                     key={d.index}
                     type="button"
                     onClick={() => setSelectedDayIdx(d.index)}
-                    className={`cursor-pointer rounded-xl border px-2.5 py-2 text-center transition ${
+                    className={`cursor-pointer rounded-xl border px-2 py-2 text-center transition ${
                       active
                         ? "border-[#00ffa3]/45 bg-[#00ffa3]/14 font-bold text-[#00ffa3]"
                         : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
@@ -345,27 +356,47 @@ export default function PlannerClient({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-12">
-            <div className="sm:col-span-3">
-              <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                درس
-              </label>
-              <select
-                value={subjectId}
-                onChange={(e) => setSubjectId(Number(e.target.value))}
-                className="bt-input bg-[#0f172a] text-xs"
-              >
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id} className="bg-[#0f172a]">
-                    {s.icon} {s.name}
-                  </option>
-                ))}
-              </select>
+          {/* Subject Pills */}
+          <div>
+            <label className="mb-2 block text-xs font-medium text-slate-400">
+              ۲. انتخاب درس
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {subjects.map((s) => {
+                const active = subjectId === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSubjectId(s.id)}
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs transition"
+                    style={
+                      active
+                        ? {
+                            backgroundColor: `${s.color}22`,
+                            color: s.color,
+                            borderColor: `${s.color}70`,
+                            fontWeight: 800,
+                          }
+                        : {
+                            backgroundColor: "rgba(255,255,255,0.03)",
+                            color: "#94a3b8",
+                            borderColor: "rgba(255,255,255,0.08)",
+                          }
+                    }
+                  >
+                    <SubjectIcon icon={s.icon} className="h-3.5 w-3.5" />
+                    <span>{s.name}</span>
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            <div className="sm:col-span-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-12">
+            <div className="col-span-2 sm:col-span-6">
               <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                مبحث و بخش مورد نظر
+                ۳. مبحث و بخش مورد نظر
               </label>
               <input
                 type="text"
@@ -378,7 +409,7 @@ export default function PlannerClient({
               />
             </div>
 
-            <div className="sm:col-span-2">
+            <div className="col-span-1 sm:col-span-3">
               <label className="mb-1.5 block text-xs font-medium text-slate-400">
                 از ساعت
               </label>
@@ -392,7 +423,7 @@ export default function PlannerClient({
               />
             </div>
 
-            <div className="sm:col-span-2">
+            <div className="col-span-1 sm:col-span-3">
               <label className="mb-1.5 block text-xs font-medium text-slate-400">
                 تا ساعت
               </label>
@@ -405,40 +436,40 @@ export default function PlannerClient({
                 className="bt-input text-center font-mono text-xs"
               />
             </div>
-
-            <div className="flex items-end sm:col-span-1">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bt-btn-primary flex h-[42px] w-full items-center justify-center text-xs"
-                title="افزودن به برنامه"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
-            </div>
           </div>
 
-          <div>
+          <div className="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
               maxLength={200}
-              placeholder="توضیح تکمیلی اختیاری (مثلاً: منبع خیلی سبز صفحه ۱۰ تا ۲۵ + ۳۰ تست آموزشی)"
+              placeholder="توضیح تکمیلی اختیاری (مثلاً: منبع خیلی سبز صفحه ۱۰ تا ۲۵ + ۳۰ تست)"
               value={sourceNote}
               onChange={(e) => setSourceNote(e.target.value)}
-              className="bt-input text-xs"
+              className="bt-input flex-1 text-xs"
             />
+            <button
+              type="submit"
+              disabled={saving}
+              className="bt-btn-primary inline-flex shrink-0 items-center justify-center gap-1.5 px-5 py-3 text-xs sm:py-2.5"
+            >
+              <Plus className="h-4 w-4" />
+              <span>{saving ? "در حال افزودن..." : "افزودن به برنامه"}</span>
+            </button>
           </div>
         </form>
       </div>
 
       {/* Weekly Summary Strip */}
       {plans.length > 0 && (
-        <div className="bt-card p-5">
+        <div className="bt-card p-4 sm:p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="text-xs font-bold text-slate-200">
-              📊 مجموع ساعت‌های در نظر گرفته‌شده در این هفته:{" "}
-              <span className="text-[#00ffa3]" dir="ltr">
-                {fmtSecsCompact(weekSummary.totalMins * 60)}
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-200">
+              <BarChart3 className="h-4 w-4 text-[#00ffa3]" />
+              <span>
+                مجموع برنامه این هفته:{" "}
+                <span className="text-[#00ffa3]" dir="ltr">
+                  {fmtSecsCompact(weekSummary.totalMins * 60)}
+                </span>
               </span>
             </div>
             <div className="text-xs text-slate-400">
@@ -458,16 +489,15 @@ export default function PlannerClient({
             {weekSummary.subjects.map((sub) => (
               <div
                 key={sub.name}
-                className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs"
+                className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs"
                 style={{
                   borderColor: `${sub.color}40`,
                   backgroundColor: `${sub.color}12`,
                   color: sub.color,
                 }}
               >
-                <span>
-                  {sub.icon} {sub.name}:
-                </span>
+                <SubjectIcon icon={sub.icon} className="h-3.5 w-3.5" />
+                <span>{sub.name}:</span>
                 <strong dir="ltr">{fmtSecsCompact(sub.mins * 60)}</strong>
               </div>
             ))}
@@ -524,9 +554,10 @@ export default function PlannerClient({
                       setSelectedDayIdx(day.index);
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
-                    className="cursor-pointer rounded-lg bg-white/[0.04] px-2 py-1 text-[11px] text-slate-400 hover:bg-white/[0.08] hover:text-white"
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-400 hover:bg-white/[0.08] hover:text-white"
                   >
-                    + افزودن
+                    <Plus className="h-3 w-3" />
+                    <span>افزودن</span>
                   </button>
                 </div>
               </div>
@@ -578,10 +609,14 @@ export default function PlannerClient({
                               {p.start_time} - {p.end_time}
                             </span>
                             <span
-                              className="text-xs font-bold"
+                              className="inline-flex items-center gap-1 text-xs font-bold"
                               style={{ color: p.subject_color }}
                             >
-                              {p.subject_icon} {p.subject_name}
+                              <SubjectIcon
+                                icon={p.subject_icon}
+                                className="h-3.5 w-3.5"
+                              />
+                              <span>{p.subject_name}</span>
                             </span>
                           </div>
 
@@ -596,8 +631,9 @@ export default function PlannerClient({
                           </div>
 
                           {p.source_note && (
-                            <div className="mt-0.5 text-[11px] text-slate-400">
-                              📖 {p.source_note}
+                            <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-slate-400">
+                              <BookOpen className="h-3 w-3 shrink-0" />
+                              <span>{p.source_note}</span>
                             </div>
                           )}
                         </div>

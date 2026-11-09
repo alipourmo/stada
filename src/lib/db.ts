@@ -153,7 +153,7 @@ function mapSubject(row: Record<string, unknown>): StadaSubject {
     user_id: Number(row.user_id),
     name: String(row.name ?? ""),
     color: String(row.color ?? "#00ffa3"),
-    icon: String(row.icon ?? "📘"),
+    icon: String(row.icon ?? "book"),
     sort_order: Number(row.sort_order ?? 0),
     is_archived: Boolean(row.is_archived ?? false),
     created_at: String(row.created_at ?? new Date().toISOString()),
@@ -170,7 +170,7 @@ function mapLog(row: Record<string, unknown>): StadaStudyLog {
         : null,
     subject_name: String(row.subject_name ?? "عمومی"),
     subject_color: String(row.subject_color ?? "#00ffa3"),
-    subject_icon: String(row.subject_icon ?? "📘"),
+    subject_icon: String(row.subject_icon ?? "book"),
     log_date: String(row.log_date ?? ""),
     duration_seconds: Number(row.duration_seconds ?? 0),
     topic: row.topic ? String(row.topic) : null,
@@ -216,7 +216,7 @@ function mapPlan(row: Record<string, unknown>): StadaWeeklyPlan {
         : null,
     subject_name: String(row.subject_name ?? ""),
     subject_color: String(row.subject_color ?? "#00ffa3"),
-    subject_icon: String(row.subject_icon ?? "📘"),
+    subject_icon: String(row.subject_icon ?? "book"),
     plan_date: String(row.plan_date ?? ""),
     day_of_week: Number(row.day_of_week ?? 0),
     start_time: String(row.start_time ?? "09:00"),
@@ -584,7 +584,7 @@ export async function createSubject(
 ): Promise<StadaSubject> {
   const name = params.name.trim().slice(0, 100);
   const color = isValidHexColor(params.color) ? params.color.trim() : "#00ffa3";
-  const icon = params.icon?.trim() ? params.icon.trim().slice(0, 12) : "📘";
+  const icon = params.icon?.trim() ? params.icon.trim().slice(0, 12) : "book";
 
   if (!isSupabaseConfigured()) {
     const db = readLocalDb();
@@ -831,7 +831,7 @@ export async function createStudyLog(input: CreateStudyLogInput): Promise<{
       id: null,
       name: "عمومی",
       color: "#00ffa3",
-      icon: "📘",
+      icon: "book",
     };
 
   const today = getTehranToday();
@@ -1121,7 +1121,7 @@ export async function createWeeklyPlan(params: {
       id: null,
       name: "عمومی",
       color: "#00ffa3",
-      icon: "📘",
+      icon: "book",
     };
 
   const plannedMinutes = calcMinutesBetween(params.startTime, params.endTime);

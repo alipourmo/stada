@@ -1,4 +1,27 @@
 import Link from "next/link";
+import {
+  BarChart3,
+  BookOpen,
+  Bookmark,
+  CalendarCheck2,
+  CalendarDays,
+  CalendarRange,
+  CheckCircle2,
+  ChevronLeft,
+  Circle,
+  ClipboardCheck,
+  ClipboardPen,
+  Clock,
+  FileCheck2,
+  GraduationCap,
+  History,
+  Hourglass,
+  PieChart,
+  Plus,
+  Settings,
+  Target,
+  Timer,
+} from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import {
   getUserStudyLogs,
@@ -12,6 +35,7 @@ import {
   formatJalaliDate,
   formatJalaliShortDayMonth,
   getDaysLeft,
+  getPersianWeekdayFull,
   getTehranToday,
   shiftDateISO,
   toFaDigits,
@@ -20,6 +44,7 @@ import {
   StackedSubjectTimelineChart,
   SubjectDoughnutChart,
 } from "@/components/Charts";
+import SubjectIcon from "@/components/SubjectIcon";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -107,62 +132,221 @@ export default async function DashboardPage() {
   const examDate = user.target_exam_date || DEFAULT_EXAM_DATE;
   const daysLeft = getDaysLeft(examDate);
   const firstName = user.name.trim().split(/\s+/)[0] || user.name;
+  const completedTodayPlans = todayPlans.filter((p) => p.is_completed).length;
+  const todayPlannedMins = todayPlans.reduce(
+    (sum, p) => sum + p.planned_minutes,
+    0
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Top Greeting & Exam Countdown Banner */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-100 sm:text-2xl">
-              سلام {firstName} 👋
-            </h1>
-            <Link
-              href="/settings"
-              className="rounded-full border border-[#00d4ff]/30 bg-[#00d4ff]/10 px-3 py-0.5 text-xs font-semibold text-[#00d4ff] no-underline hover:bg-[#00d4ff]/20"
-            >
-              🎓 {user.study_field}
-            </Link>
-          </div>
-          <p className="mt-1 text-xs text-slate-400 sm:text-[13px]">
-            امروز {formatJalaliDate(todayIso)} — هر صفحه و هر تست، یک قدم
-            نزدیک‌تر به هدف
-          </p>
-        </div>
+    <div className="space-y-5 sm:space-y-6">
+      {/* SECTION 1 (FIRST & LARGEST): HERO EXAM COUNTDOWN */}
+      <section className="relative overflow-hidden rounded-2xl border border-[#00ffa3]/30 bg-gradient-to-br from-[#00ffa3]/[0.12] via-[#0a0f1e]/95 to-[#00d4ff]/[0.1] p-5 shadow-xl shadow-[#00ffa3]/[0.04] sm:rounded-3xl sm:p-8">
+        <div className="pointer-events-none absolute -top-20 -left-20 h-56 w-56 rounded-full bg-[#00ffa3]/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 -bottom-20 h-56 w-56 rounded-full bg-[#00d4ff]/10 blur-3xl" />
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        {/* Top Meta Bar */}
+        <div className="relative flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-slate-200 sm:text-sm">
+              سلام {firstName}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#00d4ff]/30 bg-[#00d4ff]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#00d4ff]">
+              <GraduationCap className="h-3.5 w-3.5 shrink-0" />
+              <span className="max-w-[180px] truncate sm:max-w-none">
+                {user.study_field}
+              </span>
+            </span>
+          </div>
+
           <Link
             href="/settings"
-            className="flex items-center gap-3 rounded-2xl border border-[#00ffa3]/25 bg-gradient-to-l from-[#00ffa3]/12 to-[#00d4ff]/10 px-4 py-2.5 no-underline transition hover:border-[#00ffa3]/50"
+            className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-slate-300 no-underline transition hover:border-[#00ffa3]/40 hover:text-[#00ffa3]"
           >
-            <div className="text-3xl leading-none font-extrabold text-[#00ffa3]">
-              {toFaDigits(daysLeft)}
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-100">
-                روز تا آزمون هدف
-              </div>
-              <div className="text-[11px] text-slate-400">
-                {formatJalaliDate(examDate)}
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/log"
-            className="bt-btn-primary inline-flex items-center gap-1.5 px-4 py-3 text-xs sm:text-sm"
-          >
-            📝 ثبت گزارش مطالعه
+            <Settings className="h-3.5 w-3.5" />
+            <span>تغییر تاریخ آزمون</span>
           </Link>
         </div>
-      </div>
 
-      {/* 4 KPI Stat Cards */}
-      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+        {/* Center Giant Countdown Focal Point */}
+        <div className="relative my-5 flex flex-col items-center justify-center text-center sm:my-7">
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[#00ffa3]/25 bg-[#00ffa3]/10 px-3 py-1 text-[11px] font-semibold text-[#00ffa3] sm:text-xs">
+            <Hourglass className="h-3.5 w-3.5" />
+            <span>روزشمار آزمون هدف</span>
+          </div>
+
+          <div
+            className="text-6xl leading-none font-black tracking-tight text-[#00ffa3] sm:text-7xl lg:text-8xl"
+            style={{ textShadow: "0 0 36px rgba(0, 255, 163, 0.28)" }}
+          >
+            {toFaDigits(daysLeft)}
+          </div>
+
+          <div className="mt-2 text-base font-extrabold text-slate-100 sm:text-xl">
+            روز باقی‌مانده تا روز آزمون
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-400">
+            <span className="inline-flex items-center gap-1">
+              <CalendarDays className="h-3.5 w-3.5 text-[#00d4ff]" />
+              <span>تاریخ آزمون: {formatJalaliDate(examDate)}</span>
+            </span>
+            <span className="hidden text-slate-600 sm:inline">•</span>
+            <span>
+              امروز {getPersianWeekdayFull(todayIso)}،{" "}
+              {formatJalaliDate(todayIso)}
+            </span>
+          </div>
+        </div>
+
+        {/* Quick Mobile-Friendly Primary Actions */}
+        <div className="relative grid grid-cols-2 gap-2.5 sm:mx-auto sm:max-w-md sm:gap-3">
+          <Link
+            href="/log"
+            className="bt-btn-primary inline-flex items-center justify-center gap-1.5 py-2.5 text-xs no-underline sm:py-3 sm:text-sm"
+          >
+            <ClipboardPen className="h-4 w-4 shrink-0" />
+            <span>ثبت گزارش مطالعه</span>
+          </Link>
+          <Link
+            href="/pomodoro"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.06] py-2.5 text-xs font-bold text-slate-100 no-underline transition hover:bg-white/[0.12] sm:py-3 sm:text-sm"
+          >
+            <Timer className="h-4 w-4 shrink-0 text-[#00d4ff]" />
+            <span>شروع پومودورو</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* SECTION 2 (SECOND SECTION): TODAY'S SCHEDULE / PLAN */}
+      <section className="bt-card p-4 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00d4ff]/12 text-[#00d4ff]">
+              <CalendarCheck2 className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-extrabold text-slate-100 sm:text-base">
+                برنامه مطالعاتی امروز
+              </h2>
+              <p className="text-[11px] text-slate-400">
+                {todayPlans.length > 0
+                  ? `${toFaDigits(completedTodayPlans)} از ${toFaDigits(todayPlans.length)} باکس انجام شده • مجموع ${fmtSecsCompact(todayPlannedMins * 60)}`
+                  : `${getPersianWeekdayFull(todayIso)} ${formatJalaliShortDayMonth(todayIso)}`}
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/planner"
+            className="inline-flex items-center gap-1 rounded-xl border border-[#00ffa3]/25 bg-[#00ffa3]/10 px-3 py-1.5 text-xs font-bold text-[#00ffa3] no-underline transition hover:bg-[#00ffa3]/20"
+          >
+            <span>برنامه هفتگی</span>
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {todayPlans.length > 0 ? (
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+            {todayPlans.map((p) => (
+              <div
+                key={p.id}
+                className={`flex items-center justify-between gap-3 rounded-xl border p-3.5 transition ${
+                  p.is_completed
+                    ? "bg-white/[0.015] opacity-75"
+                    : "bg-white/[0.03]"
+                }`}
+                style={{
+                  borderColor: `${p.subject_color}38`,
+                  borderRightWidth: "4px",
+                  borderRightColor: p.subject_color,
+                }}
+              >
+                <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                  <div className="mt-0.5 shrink-0">
+                    {p.is_completed ? (
+                      <CheckCircle2 className="h-5 w-5 text-[#00ffa3]" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-slate-500" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold"
+                        style={{
+                          backgroundColor: `${p.subject_color}20`,
+                          color: p.subject_color,
+                        }}
+                        dir="ltr"
+                      >
+                        {p.start_time} - {p.end_time}
+                      </span>
+                      <span
+                        className="inline-flex items-center gap-1 truncate text-xs font-bold"
+                        style={{ color: p.subject_color }}
+                      >
+                        <SubjectIcon
+                          icon={p.subject_icon}
+                          className="h-3.5 w-3.5"
+                        />
+                        <span>{p.subject_name}</span>
+                      </span>
+                    </div>
+
+                    <div
+                      className={`mt-1.5 text-[13px] font-semibold ${
+                        p.is_completed
+                          ? "text-slate-400 line-through"
+                          : "text-slate-100"
+                      }`}
+                    >
+                      {p.topic}
+                    </div>
+
+                    {p.source_note && (
+                      <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-slate-400">
+                        <BookOpen className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{p.source_note}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Link
+                  href={`/log?subjectId=${p.subject_id ?? ""}&topic=${encodeURIComponent(p.topic)}&mins=${p.planned_minutes}&date=${p.plan_date}&source=${encodeURIComponent(p.source_note || "")}`}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-[#00ffa3]/12 px-3 py-2 text-xs font-bold text-[#00ffa3] no-underline transition hover:bg-[#00ffa3]/22"
+                >
+                  <ClipboardCheck className="h-3.5 w-3.5" />
+                  <span>ثبت گزارش</span>
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-between gap-3 rounded-xl border border-dashed border-white/12 bg-white/[0.015] p-5 text-center sm:flex-row sm:text-right">
+            <div className="text-xs leading-relaxed text-slate-400">
+              هنوز باکس مطالعه‌ای برای امروز ثبت نکرده‌اید. ساعت‌های مطالعه امروز
+              و هفته پیش رو را مشخص کنید تا در همین بخش نمایش داده شوند.
+            </div>
+            <Link
+              href="/planner"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#00d4ff]/15 px-4 py-2.5 text-xs font-bold text-[#00d4ff] no-underline transition hover:bg-[#00d4ff]/25"
+            >
+              <Plus className="h-4 w-4" />
+              <span>تنظیم برنامه امروز</span>
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {/* SECTION 3: 4 KPI STAT CARDS */}
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div className="bt-card p-4 sm:p-5">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs text-slate-400">مطالعه امروز</span>
-            <span className="text-lg">⏱️</span>
+            <Clock className="h-4 w-4 text-[#00ffa3]" />
           </div>
           <div
             className="font-mono text-2xl leading-none font-extrabold text-[#00ffa3] sm:text-[26px]"
@@ -176,7 +360,7 @@ export default async function DashboardPage() {
         <div className="bt-card p-4 sm:p-5">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs text-slate-400">۷ روز اخیر</span>
-            <span className="text-lg">📅</span>
+            <CalendarRange className="h-4 w-4 text-[#00d4ff]" />
           </div>
           <div
             className="text-2xl leading-none font-extrabold text-[#00d4ff] sm:text-[26px]"
@@ -190,7 +374,7 @@ export default async function DashboardPage() {
         <div className="bt-card p-4 sm:p-5">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs text-slate-400">صفحات مطالعه‌شده</span>
-            <span className="text-lg">📖</span>
+            <BookOpen className="h-4 w-4 text-[#a78bfa]" />
           </div>
           <div className="text-2xl leading-none font-extrabold text-[#a78bfa] sm:text-[26px]">
             {toFaDigits(totalPages)}
@@ -202,8 +386,8 @@ export default async function DashboardPage() {
 
         <div className="bt-card p-4 sm:p-5">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs text-slate-400">کل تست‌های حل‌شده</span>
-            <span className="text-lg">📝</span>
+            <span className="text-xs text-slate-400">تست‌های حل‌شده</span>
+            <FileCheck2 className="h-4 w-4 text-[#ff6b9d]" />
           </div>
           <div className="text-2xl leading-none font-extrabold text-[#ff6b9d] sm:text-[26px]">
             {toFaDigits(totalTests)}
@@ -214,14 +398,17 @@ export default async function DashboardPage() {
               : "آماده ثبت تست"}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Overall Goal Progress Card */}
-      <div className="bt-card p-5">
+      {/* SECTION 4: OVERALL GOAL PROGRESS */}
+      <section className="bt-card p-4 sm:p-5">
         <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-bold text-slate-100">
-            🎯 پیشرفت کل ساعت مطالعه نسبت به هدف ({toFaDigits(totalHours)} از{" "}
-            {toFaDigits(user.target_hours)} ساعت)
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-100 sm:text-sm">
+            <Target className="h-4 w-4 shrink-0 text-[#00ffa3]" />
+            <span>
+              پیشرفت کل ساعت مطالعه ({toFaDigits(totalHours)} از{" "}
+              {toFaDigits(user.target_hours)} ساعت)
+            </span>
           </span>
           <div className="flex items-center gap-3">
             <span className="text-sm font-extrabold text-[#00ffa3]">
@@ -231,7 +418,7 @@ export default async function DashboardPage() {
               href="/settings"
               className="text-xs text-slate-400 no-underline hover:text-[#00d4ff]"
             >
-              ویرایش هدف ✎
+              ویرایش هدف
             </Link>
           </div>
         </div>
@@ -241,99 +428,22 @@ export default async function DashboardPage() {
             style={{ width: `${progressPct}%` }}
           />
         </div>
-      </div>
+      </section>
 
-      {/* Today's Scheduled Blocks from Weekly Planner */}
-      <div className="bt-card p-5">
-        <div className="mb-3.5 flex items-center justify-between">
-          <span className="text-sm font-bold text-slate-100">
-            📅 برنامه مطالعاتی امروز من
-          </span>
-          <Link
-            href="/planner"
-            className="text-xs font-semibold text-[#00ffa3] no-underline hover:underline"
-          >
-            مدیریت برنامه هفتگی ←
-          </Link>
-        </div>
-
-        {todayPlans.length > 0 ? (
-          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
-            {todayPlans.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between gap-2 rounded-xl border bg-white/[0.02] p-3"
-                style={{
-                  borderColor: `${p.subject_color}40`,
-                  borderRightWidth: "4px",
-                  borderRightColor: p.subject_color,
-                }}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="rounded px-1.5 py-0.5 font-mono text-[11px] font-bold"
-                      style={{
-                        backgroundColor: `${p.subject_color}20`,
-                        color: p.subject_color,
-                      }}
-                      dir="ltr"
-                    >
-                      {p.start_time}-{p.end_time}
-                    </span>
-                    <span
-                      className="truncate text-xs font-bold"
-                      style={{ color: p.subject_color }}
-                    >
-                      {p.subject_icon} {p.subject_name}
-                    </span>
-                  </div>
-                  <div
-                    className={`mt-1 truncate text-xs ${
-                      p.is_completed
-                        ? "text-slate-400 line-through"
-                        : "text-slate-200"
-                    }`}
-                  >
-                    {p.topic}
-                  </div>
-                </div>
-                <Link
-                  href={`/log?subjectId=${p.subject_id ?? ""}&topic=${encodeURIComponent(p.topic)}&mins=${p.planned_minutes}&date=${p.plan_date}`}
-                  className="shrink-0 rounded-lg bg-[#00ffa3]/12 px-2.5 py-1 text-[11px] font-bold text-[#00ffa3] no-underline hover:bg-[#00ffa3]/25"
-                >
-                  ثبت گزارش
-                </Link>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-4 text-xs text-slate-400">
-            <span>
-              هنوز باکس مطالعه‌ای برای امروز در برنامه هفتگی تعریف نکرده‌اید.
-            </span>
-            <Link
-              href="/planner"
-              className="rounded-lg bg-[#00d4ff]/15 px-3 py-1.5 font-bold text-[#00d4ff] no-underline hover:bg-[#00d4ff]/25"
-            >
-              + چیدن برنامه هفته پیش رو
-            </Link>
-          </div>
-        )}
-      </div>
-
-      {/* Charts Row: 7-Day Colored Stacked Bar + Subject Share Doughnut */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="bt-card p-5 lg:col-span-7">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-100">
-              📊 مطالعه ۷ روز اخیر به تفکیک رنگ هر درس (دقیقه)
+      {/* SECTION 5: CHARTS */}
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="bt-card p-4 sm:p-5 lg:col-span-7">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-100">
+              <BarChart3 className="h-4 w-4 text-[#00ffa3]" />
+              <span>مطالعه ۷ روز اخیر به تفکیک درس (دقیقه)</span>
             </span>
             <Link
               href="/reports"
-              className="text-xs text-[#00ffa3] no-underline hover:underline"
+              className="inline-flex items-center gap-0.5 text-xs text-[#00ffa3] no-underline hover:underline"
             >
-              گزارش روزانه / هفتگی / ماهانه ←
+              <span>گزارش کامل</span>
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Link>
           </div>
           {stackedSeries.length > 0 ? (
@@ -343,23 +453,24 @@ export default async function DashboardPage() {
               unitLabel="دقیقه"
             />
           ) : (
-            <div className="flex h-[245px] items-center justify-center text-xs text-slate-500">
+            <div className="flex h-[220px] items-center justify-center text-xs text-slate-500">
               اولین گزارش مطالعه خود را ثبت کنید تا نمودار رنگی دروس نمایش داده
               شود
             </div>
           )}
         </div>
 
-        <div className="bt-card p-5 lg:col-span-5">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-100">
-              🎨 سهم کل هر درس از مطالعه شما
+        <div className="bt-card p-4 sm:p-5 lg:col-span-5">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-100">
+              <PieChart className="h-4 w-4 text-[#00d4ff]" />
+              <span>سهم کل هر درس</span>
             </span>
             <Link
               href="/settings"
               className="text-xs text-slate-400 no-underline hover:text-[#00d4ff]"
             >
-              تغییر رنگ دروس
+              رنگ دروس
             </Link>
           </div>
           <SubjectDoughnutChart
@@ -373,28 +484,22 @@ export default async function DashboardPage() {
             unitLabel="دقیقه"
           />
         </div>
-      </div>
+      </section>
 
-      {/* Recent Logs */}
-      <div className="bt-card p-5">
-        <div className="mb-3.5 flex items-center justify-between">
-          <span className="text-sm font-bold text-slate-100">
-            🧾 آخرین گزارش‌های ثبت‌شده
+      {/* SECTION 6: RECENT LOGS */}
+      <section className="bt-card p-4 sm:p-5">
+        <div className="mb-3.5 flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-100">
+            <History className="h-4 w-4 text-[#00ffa3]" />
+            <span>آخرین گزارش‌های ثبت‌شده</span>
           </span>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/pomodoro"
-              className="text-xs font-semibold text-[#00d4ff] no-underline hover:underline"
-            >
-              ⏱️ تایمر پومودورو
-            </Link>
-            <Link
-              href="/log"
-              className="text-xs font-semibold text-[#00ffa3] no-underline hover:underline"
-            >
-              + ثبت گزارش جدید
-            </Link>
-          </div>
+          <Link
+            href="/log"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[#00ffa3] no-underline hover:underline"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>ثبت گزارش جدید</span>
+          </Link>
         </div>
 
         {allLogs.length > 0 ? (
@@ -406,38 +511,44 @@ export default async function DashboardPage() {
                 style={{ borderColor: `${l.subject_color}30` }}
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: l.subject_color }}
-                    />
-                    <span
-                      className="font-bold"
+                      className="inline-flex items-center gap-1.5 font-bold"
                       style={{ color: l.subject_color }}
                     >
-                      {l.subject_icon} {l.subject_name}
+                      <SubjectIcon
+                        icon={l.subject_icon}
+                        className="h-3.5 w-3.5"
+                      />
+                      <span>{l.subject_name}</span>
                     </span>
                     <span className="text-[11px] text-slate-500">
                       {formatJalaliDate(l.log_date)}
                     </span>
                   </div>
                   {l.topic && (
-                    <div className="mt-1 truncate text-slate-200">
-                      📌 {l.topic}
+                    <div className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-slate-200">
+                      <Bookmark className="h-3 w-3 shrink-0 text-slate-400" />
+                      <span className="truncate">{l.topic}</span>
                     </div>
                   )}
-                  <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-400">
+                  <div className="mt-1.5 flex flex-wrap gap-2.5 text-[11px] text-slate-400">
                     {l.duration_seconds > 0 && (
-                      <span dir="ltr">
-                        ⏱️ {fmtSecsCompact(l.duration_seconds)}
+                      <span className="inline-flex items-center gap-1" dir="ltr">
+                        <Clock className="h-3 w-3" />
+                        {fmtSecsCompact(l.duration_seconds)}
                       </span>
                     )}
                     {l.pages_count > 0 && (
-                      <span>📖 {toFaDigits(l.pages_count)} صفحه</span>
+                      <span className="inline-flex items-center gap-1">
+                        <BookOpen className="h-3 w-3" />
+                        {toFaDigits(l.pages_count)} صفحه
+                      </span>
                     )}
                     {l.tests_total > 0 && (
-                      <span className="text-[#ff6b9d]">
-                        📝 {toFaDigits(l.tests_total)} تست
+                      <span className="inline-flex items-center gap-1 text-[#ff6b9d]">
+                        <FileCheck2 className="h-3 w-3" />
+                        {toFaDigits(l.tests_total)} تست
                         {l.test_accuracy !== null
                           ? ` (${l.test_accuracy}%)`
                           : ""}
@@ -453,7 +564,7 @@ export default async function DashboardPage() {
             هنوز گزارشی ثبت نشده است — از دکمه «ثبت گزارش مطالعه» شروع کنید!
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

@@ -3,7 +3,20 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Clock, FileText, Settings2, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  Bookmark,
+  CheckCircle2,
+  ChevronLeft,
+  ClipboardPen,
+  Clock,
+  FileCheck2,
+  FileText,
+  History,
+  MessageSquare,
+  Settings2,
+  Trash2,
+} from "lucide-react";
 import {
   calcAccuracy,
   calcKonkurPercent,
@@ -13,6 +26,7 @@ import {
   toFaDigits,
 } from "@/lib/constants";
 import type { StadaStudyLog, StadaSubject } from "@/lib/db";
+import SubjectIcon from "./SubjectIcon";
 
 interface StudyLogClientProps {
   subjects: StadaSubject[];
@@ -131,10 +145,8 @@ export default function StudyLogClient({
     const m = Math.max(0, parseInt(minsStr || "0", 10) || 0);
     const durationSeconds = h * 3600 + m * 60;
 
-    const pf =
-      pageFromStr.trim() !== "" ? parseInt(pageFromStr, 10) : null;
-    const pt =
-      pageToStr.trim() !== "" ? parseInt(pageToStr, 10) : null;
+    const pf = pageFromStr.trim() !== "" ? parseInt(pageFromStr, 10) : null;
+    const pt = pageToStr.trim() !== "" ? parseInt(pageToStr, 10) : null;
     const testsTotal =
       testsTotalStr.trim() !== "" ? parseInt(testsTotalStr, 10) : 0;
     const testsWrong =
@@ -203,7 +215,6 @@ export default function StudyLogClient({
             new CustomEvent("stada:meta", { detail: { streak: data.streak } })
           );
         }
-        // Reset per-entry fields while keeping date & subject convenient
         setTopic("");
         setPageFromStr("");
         setPageToStr("");
@@ -214,7 +225,7 @@ export default function StudyLogClient({
         setNote("");
         setFeedback({
           type: "ok",
-          text: `گزارش «${data.log.subject_name}» با موفقیت ثبت شد ✓`,
+          text: `گزارش «${data.log.subject_name}» با موفقیت ثبت شد`,
         });
         router.refresh();
       }
@@ -239,10 +250,11 @@ export default function StudyLogClient({
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-100 sm:text-[22px]">
-            📝 ثبت گزارش جامع مطالعه و تست
+          <h1 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-100 sm:text-[22px]">
+            <ClipboardPen className="h-5 w-5 text-[#00ffa3]" />
+            <span>ثبت گزارش مطالعه و تست</span>
           </h1>
           <p className="mt-1 text-xs text-slate-400 sm:text-[13px]">
             ثبت یکپارچه ساعت مطالعه، مبحث، منبع، شماره صفحات و عملکرد تست‌زنی
@@ -251,29 +263,32 @@ export default function StudyLogClient({
 
         <Link
           href="/settings"
-          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-slate-300 no-underline transition hover:bg-white/[0.08]"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-300 no-underline transition hover:bg-white/[0.08]"
         >
           <Settings2 className="h-3.5 w-3.5 text-[#00ffa3]" />
           <span>مدیریت دروس و رنگ‌ها</span>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Form Column (7 cols) */}
-        <div className="bt-card p-5 sm:p-6 lg:col-span-7">
+        <div className="bt-card p-4 sm:p-6 lg:col-span-7">
           {feedback && (
             <div
-              className={`mb-4 rounded-xl border px-3.5 py-2.5 text-[13px] ${
+              className={`mb-4 flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs sm:text-[13px] ${
                 feedback.type === "ok"
                   ? "border-[#00ffa3]/30 bg-[#00ffa3]/10 text-[#00ffa3]"
                   : "border-red-500/30 bg-red-500/10 text-red-300"
               }`}
             >
-              {feedback.text}
+              {feedback.type === "ok" && (
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+              )}
+              <span>{feedback.text}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {/* 1. Subject Selector */}
             <div>
               <label className="mb-2 block text-xs font-semibold text-slate-300">
@@ -287,7 +302,7 @@ export default function StudyLogClient({
                       key={s.id}
                       type="button"
                       onClick={() => setSubjectId(s.id)}
-                      className="cursor-pointer rounded-xl border px-3.5 py-2 text-[13px] transition"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs transition sm:text-[13px]"
                       style={
                         active
                           ? {
@@ -303,7 +318,8 @@ export default function StudyLogClient({
                             }
                       }
                     >
-                      {s.icon} {s.name}
+                      <SubjectIcon icon={s.icon} className="h-3.5 w-3.5" />
+                      <span>{s.name}</span>
                     </button>
                   );
                 })}
@@ -321,7 +337,7 @@ export default function StudyLogClient({
                     <button
                       type="button"
                       onClick={() => setLogDate(todayIso)}
-                      className={`cursor-pointer rounded px-1.5 py-0.5 ${
+                      className={`cursor-pointer rounded px-2 py-0.5 ${
                         logDate === todayIso
                           ? "bg-[#00ffa3]/20 font-bold text-[#00ffa3]"
                           : "bg-white/[0.04] text-slate-400"
@@ -332,7 +348,7 @@ export default function StudyLogClient({
                     <button
                       type="button"
                       onClick={() => setLogDate(yesterdayIso)}
-                      className={`cursor-pointer rounded px-1.5 py-0.5 ${
+                      className={`cursor-pointer rounded px-2 py-0.5 ${
                         logDate === yesterdayIso
                           ? "bg-[#00d4ff]/20 font-bold text-[#00d4ff]"
                           : "bg-white/[0.04] text-slate-400"
@@ -362,7 +378,7 @@ export default function StudyLogClient({
                 <input
                   type="text"
                   maxLength={200}
-                  placeholder="مثلاً: فصل ۲ — ساختار غشا / مشتق توابع مثلثاتی"
+                  placeholder="مثلاً: فصل ۲ — ساختار غشا / مشتق توابع"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   className="bt-input"
@@ -371,19 +387,19 @@ export default function StudyLogClient({
             </div>
 
             {/* 3. Study Time */}
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3.5 sm:p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-200">
                   <Clock className="h-3.5 w-3.5 text-[#00ffa3]" />
-                  ۴. میزان زمان مطالعه
+                  <span>۴. میزان زمان مطالعه</span>
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    [30, "۳۰ دقیقه"],
-                    [45, "۴۵ دقیقه"],
-                    [60, "۱ ساعت"],
-                    [90, "۱.۵ ساعت"],
-                    [120, "۲ ساعت"],
+                    [30, "۳۰د"],
+                    [45, "۴۵د"],
+                    [60, "۱س"],
+                    [90, "۱.۵س"],
+                    [120, "۲س"],
                   ].map(([mins, lbl]) => (
                     <button
                       key={String(mins)}
@@ -430,11 +446,11 @@ export default function StudyLogClient({
             </div>
 
             {/* 4. Source Book & Pages */}
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3.5 sm:p-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-200">
                   <BookOpen className="h-3.5 w-3.5 text-[#00d4ff]" />
-                  ۵. منبع و صفحات مطالعه‌شده
+                  <span>۵. منبع و صفحات مطالعه‌شده</span>
                 </span>
                 {computedPages > 0 && (
                   <span className="rounded-full bg-[#00d4ff]/15 px-2.5 py-0.5 text-[11px] font-bold text-[#00d4ff]">
@@ -443,8 +459,8 @@ export default function StudyLogClient({
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
-                <div className="sm:col-span-6">
+              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-12">
+                <div className="col-span-3 sm:col-span-6">
                   <label className="mb-1 block text-[11px] text-slate-400">
                     نام منبع / کتاب / جزوه
                   </label>
@@ -458,7 +474,7 @@ export default function StudyLogClient({
                   />
                 </div>
 
-                <div className="sm:col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className="mb-1 block text-[11px] text-slate-400">
                     از صفحه
                   </label>
@@ -476,7 +492,7 @@ export default function StudyLogClient({
                   />
                 </div>
 
-                <div className="sm:col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className="mb-1 block text-[11px] text-slate-400">
                     تا صفحه
                   </label>
@@ -494,7 +510,7 @@ export default function StudyLogClient({
                   />
                 </div>
 
-                <div className="sm:col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className="mb-1 block text-[11px] text-slate-400">
                     کل صفحات
                   </label>
@@ -514,18 +530,20 @@ export default function StudyLogClient({
             </div>
 
             {/* 5. Unified Test Entry */}
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3.5 sm:p-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-200">
                   <FileText className="h-3.5 w-3.5 text-[#ff6b9d]" />
-                  ۶. تست‌های حل‌شده{" "}
-                  <span className="text-[10px] font-normal text-slate-500">
-                    (در صورت زدن تست تکمیل شود)
+                  <span>
+                    ۶. تست‌های حل‌شده{" "}
+                    <span className="text-[10px] font-normal text-slate-500">
+                      (اختیاری)
+                    </span>
                   </span>
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2.5">
                 <div>
                   <label className="mb-1 block text-[11px] text-slate-400">
                     تعداد کل تست
@@ -535,7 +553,7 @@ export default function StudyLogClient({
                     min={0}
                     max={1000}
                     dir="ltr"
-                    placeholder="مثلاً 40"
+                    placeholder="40"
                     value={testsTotalStr}
                     onChange={(e) => setTestsTotalStr(e.target.value)}
                     className="bt-input text-center text-xs"
@@ -543,15 +561,14 @@ export default function StudyLogClient({
                 </div>
                 <div>
                   <label className="mb-1 block text-[11px] text-slate-400">
-                    تعداد غلط{" "}
-                    <span className="text-[10px] text-slate-500">(اختیاری)</span>
+                    غلط
                   </label>
                   <input
                     type="number"
                     min={0}
                     max={1000}
                     dir="ltr"
-                    placeholder="مثلاً 4"
+                    placeholder="4"
                     value={testsWrongStr}
                     onChange={(e) => setTestsWrongStr(e.target.value)}
                     className="bt-input text-center text-xs"
@@ -559,8 +576,7 @@ export default function StudyLogClient({
                 </div>
                 <div>
                   <label className="mb-1 block text-[11px] text-slate-400">
-                    نزده{" "}
-                    <span className="text-[10px] text-slate-500">(اختیاری)</span>
+                    نزده
                   </label>
                   <input
                     type="number"
@@ -580,7 +596,7 @@ export default function StudyLogClient({
                   <div className="flex items-center justify-around gap-3">
                     <div>
                       <div
-                        className="text-2xl font-extrabold"
+                        className="text-xl font-extrabold sm:text-2xl"
                         dir="ltr"
                         style={{
                           color:
@@ -600,7 +616,7 @@ export default function StudyLogClient({
                     <div className="h-8 w-px bg-white/10" />
                     <div>
                       <div
-                        className="text-2xl font-extrabold text-[#00d4ff]"
+                        className="text-xl font-extrabold text-[#00d4ff] sm:text-2xl"
                         dir="ltr"
                       >
                         {testPreview.konkur}%
@@ -629,7 +645,7 @@ export default function StudyLogClient({
               </label>
               <textarea
                 rows={2}
-                placeholder="مثلاً: نکات ترکیبی بخش دوم علامت‌گذاری شد و فردا مرور می‌شود..."
+                placeholder="مثلاً: نکات ترکیبی بخش دوم علامت‌گذاری شد..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 className="bt-input resize-y text-xs"
@@ -639,7 +655,7 @@ export default function StudyLogClient({
             <button
               type="submit"
               disabled={saving}
-              className="bt-btn-primary w-full py-3.5 text-[15px]"
+              className="bt-btn-primary w-full py-3.5 text-sm sm:text-[15px]"
             >
               {saving ? "در حال ثبت گزارش..." : "ثبت نهایی گزارش مطالعه"}
             </button>
@@ -647,16 +663,18 @@ export default function StudyLogClient({
         </div>
 
         {/* Recent Logs Column (5 cols) */}
-        <div className="bt-card p-5 sm:p-6 lg:col-span-5">
+        <div className="bt-card p-4 sm:p-6 lg:col-span-5">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-100">
-              🗂️ آخرین گزارش‌های ثبت‌شده ({toFaDigits(filteredLogs.length)})
+            <h2 className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-100">
+              <History className="h-4 w-4 text-[#00ffa3]" />
+              <span>گزارش‌های اخیر ({toFaDigits(filteredLogs.length)})</span>
             </h2>
             <Link
               href="/reports"
-              className="text-xs font-semibold text-[#00ffa3] no-underline hover:underline"
+              className="inline-flex items-center gap-0.5 text-xs font-semibold text-[#00ffa3] no-underline hover:underline"
             >
-              تحلیل نموداری ←
+              <span>نمودارها</span>
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Link>
           </div>
 
@@ -677,7 +695,7 @@ export default function StudyLogClient({
                 key={s.id}
                 type="button"
                 onClick={() => setFilterSubId(s.id)}
-                className="cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] transition"
+                className="inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] transition"
                 style={
                   filterSubId === s.id
                     ? {
@@ -693,7 +711,8 @@ export default function StudyLogClient({
                       }
                 }
               >
-                {s.icon} {s.name}
+                <SubjectIcon icon={s.icon} className="h-3 w-3" />
+                <span>{s.name}</span>
               </button>
             ))}
           </div>
@@ -710,14 +729,14 @@ export default function StudyLogClient({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: l.subject_color }}
-                        />
-                        <span
-                          className="text-[13px] font-bold"
+                          className="inline-flex items-center gap-1.5 text-[13px] font-bold"
                           style={{ color: l.subject_color }}
                         >
-                          {l.subject_icon} {l.subject_name}
+                          <SubjectIcon
+                            icon={l.subject_icon}
+                            className="h-3.5 w-3.5"
+                          />
+                          <span>{l.subject_name}</span>
                         </span>
                         <span className="text-[11px] text-slate-500">
                           {formatJalaliDate(l.log_date)}
@@ -725,15 +744,16 @@ export default function StudyLogClient({
                       </div>
 
                       {l.topic && (
-                        <div className="mt-1 text-xs font-medium text-slate-200">
-                          📌 {l.topic}
+                        <div className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-slate-200">
+                          <Bookmark className="h-3 w-3 shrink-0 text-slate-400" />
+                          <span>{l.topic}</span>
                         </div>
                       )}
 
                       <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-300">
                         {l.duration_seconds > 0 && (
-                          <span className="rounded-md bg-white/[0.05] px-2 py-0.5">
-                            ⏱️{" "}
+                          <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.05] px-2 py-0.5">
+                            <Clock className="h-3 w-3" />
                             <span dir="ltr">
                               {fmtSecsCompact(l.duration_seconds)}
                             </span>
@@ -741,32 +761,39 @@ export default function StudyLogClient({
                         )}
 
                         {(l.pages_count > 0 || l.source_book) && (
-                          <span className="rounded-md bg-[#00d4ff]/10 px-2 py-0.5 text-[#00d4ff]">
-                            📖 {l.source_book ? `${l.source_book}: ` : ""}
-                            {l.page_from !== null && l.page_to !== null
-                              ? `ص ${toFaDigits(l.page_from)} تا ${toFaDigits(l.page_to)} (${toFaDigits(l.pages_count)} صفحه)`
-                              : l.pages_count > 0
-                                ? `${toFaDigits(l.pages_count)} صفحه`
-                                : ""}
+                          <span className="inline-flex items-center gap-1 rounded-md bg-[#00d4ff]/10 px-2 py-0.5 text-[#00d4ff]">
+                            <BookOpen className="h-3 w-3 shrink-0" />
+                            <span>
+                              {l.source_book ? `${l.source_book}: ` : ""}
+                              {l.page_from !== null && l.page_to !== null
+                                ? `ص ${toFaDigits(l.page_from)} تا ${toFaDigits(l.page_to)} (${toFaDigits(l.pages_count)} صفحه)`
+                                : l.pages_count > 0
+                                  ? `${toFaDigits(l.pages_count)} صفحه`
+                                  : ""}
+                            </span>
                           </span>
                         )}
 
                         {l.tests_total > 0 && (
-                          <span className="rounded-md bg-[#ff6b9d]/12 px-2 py-0.5 text-[#ff6b9d]">
-                            📝 {toFaDigits(l.tests_total)} تست
-                            {l.test_accuracy !== null
-                              ? ` • دقت ${l.test_accuracy}%`
-                              : ""}
-                            {l.konkur_score !== null
-                              ? ` (کنکوری ${l.konkur_score}%)`
-                              : ""}
+                          <span className="inline-flex items-center gap-1 rounded-md bg-[#ff6b9d]/12 px-2 py-0.5 text-[#ff6b9d]">
+                            <FileCheck2 className="h-3 w-3 shrink-0" />
+                            <span>
+                              {toFaDigits(l.tests_total)} تست
+                              {l.test_accuracy !== null
+                                ? ` • دقت ${l.test_accuracy}%`
+                                : ""}
+                              {l.konkur_score !== null
+                                ? ` (کنکوری ${l.konkur_score}%)`
+                                : ""}
+                            </span>
                           </span>
                         )}
                       </div>
 
                       {l.note && (
-                        <div className="mt-1.5 text-[11px] text-slate-400">
-                          💬 {l.note}
+                        <div className="mt-1.5 inline-flex items-start gap-1 text-[11px] text-slate-400">
+                          <MessageSquare className="mt-0.5 h-3 w-3 shrink-0" />
+                          <span>{l.note}</span>
                         </div>
                       )}
                     </div>

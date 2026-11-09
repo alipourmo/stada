@@ -3,13 +3,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Settings2, Trash2, Volume2, VolumeX } from "lucide-react";
 import {
-  fmtClockHM,
-  fmtSecsCompact,
-  toFaDigits,
-} from "@/lib/constants";
+  Activity,
+  BookOpen,
+  CheckCircle2,
+  ChevronLeft,
+  Coffee,
+  History,
+  Layers,
+  Pause,
+  Play,
+  RotateCcw,
+  Save,
+  Settings2,
+  Timer,
+  Trash2,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { fmtClockHM, fmtSecsCompact, toFaDigits } from "@/lib/constants";
 import type { StadaStudyLog, StadaSubject } from "@/lib/db";
+import SubjectIcon from "./SubjectIcon";
 
 interface PomodoroClientProps {
   subjects: StadaSubject[];
@@ -18,15 +32,15 @@ interface PomodoroClientProps {
 }
 
 const WORK_PRESETS = [
-  { mins: 25, label: "مطالعه ۲۵ دقیقه" },
-  { mins: 45, label: "مطالعه ۴۵ دقیقه" },
-  { mins: 90, label: "مطالعه ۹۰ دقیقه" },
+  { mins: 25, label: "۲۵ دقیقه" },
+  { mins: 45, label: "۴۵ دقیقه" },
+  { mins: 90, label: "۹۰ دقیقه" },
 ];
 
 const BREAK_PRESETS = [
-  { mins: 5, label: "استراحت ۵ دقیقه" },
-  { mins: 15, label: "استراحت ۱۵ دقیقه" },
-  { mins: 30, label: "استراحت ۳۰ دقیقه" },
+  { mins: 5, label: "۵ دقیقه" },
+  { mins: 15, label: "۱۵ دقیقه" },
+  { mins: 30, label: "۳۰ دقیقه" },
 ];
 
 export default function PomodoroClient({
@@ -46,7 +60,6 @@ export default function PomodoroClient({
   );
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // Optional context fields attached to the current study session
   const [topic, setTopic] = useState("");
   const [sourceBook, setSourceBook] = useState("");
   const [pageFrom, setPageFrom] = useState("");
@@ -71,7 +84,7 @@ export default function PomodoroClient({
       id: 0,
       name: "عمومی",
       color: "#00ffa3",
-      icon: "📘",
+      icon: "book",
     };
 
   const totalCurrentDuration = mode === "work" ? workDuration : breakDuration;
@@ -160,7 +173,7 @@ export default function PomodoroClient({
         setTestsTotal("");
         showNotification(
           "ok",
-          `پومودوروی «${activeSub.name}» (${fmtSecsCompact(secondsToSave)}) در گزارش امروز ثبت شد ✓`
+          `پومودوروی «${activeSub.name}» (${fmtSecsCompact(secondsToSave)}) در گزارش امروز ثبت شد`
         );
         router.refresh();
         return true;
@@ -183,7 +196,6 @@ export default function PomodoroClient({
     ]
   );
 
-  // Wall-clock accurate timer interval
   useEffect(() => {
     if (!running) return;
 
@@ -219,12 +231,11 @@ export default function PomodoroClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, mode, workDuration, breakDuration, playChime, persistSession]);
 
-  // Dynamic browser tab title
   useEffect(() => {
     const m = String(Math.floor(secsLeft / 60)).padStart(2, "0");
     const s = String(secsLeft % 60).padStart(2, "0");
     if (running) {
-      document.title = `${m}:${s} ${mode === "work" ? "🧠" : "☕"} ${activeSub.name} | stada`;
+      document.title = `${m}:${s} • ${mode === "work" ? activeSub.name : "استراحت"} | stada`;
     } else {
       document.title = "پومودورو | stada";
     }
@@ -295,10 +306,11 @@ export default function PomodoroClient({
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-100 sm:text-[22px]">
-            ⏱️ تایمر پومودورو
+          <h1 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-100 sm:text-[22px]">
+            <Timer className="h-5 w-5 text-[#00ffa3]" />
+            <span>تایمر پومودورو</span>
           </h1>
           <p className="mt-1 text-xs text-slate-400 sm:text-[13px]">
             بلاک‌های مطالعه ۲۵، ۴۵ و ۹۰ دقیقه‌ای با استراحت‌های ۵، ۱۵ و ۳۰ دقیقه‌ای
@@ -326,21 +338,22 @@ export default function PomodoroClient({
 
       {toast && (
         <div
-          className={`mb-4 rounded-xl border px-4 py-3 text-xs font-medium ${
+          className={`mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-xs font-medium ${
             toast.type === "ok"
               ? "border-[#00ffa3]/30 bg-[#00ffa3]/10 text-[#00ffa3]"
               : "border-red-500/30 bg-red-500/10 text-red-300"
           }`}
         >
-          {toast.text}
+          {toast.type === "ok" && <CheckCircle2 className="h-4 w-4 shrink-0" />}
+          <span>{toast.text}</span>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Timer Column (6 cols) */}
-        <div className="bt-card flex flex-col items-center justify-center p-6 text-center sm:p-8 lg:col-span-6">
+        <div className="bt-card flex flex-col items-center justify-center p-5 text-center sm:p-8 lg:col-span-6">
           <div
-            className="mb-5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-bold"
+            className="mb-5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold sm:text-sm"
             style={
               mode === "work"
                 ? {
@@ -353,13 +366,21 @@ export default function PomodoroClient({
                   }
             }
           >
-            {mode === "work"
-              ? `🧠 مطالعه: ${activeSub.icon} ${activeSub.name}`
-              : "☕ زمان استراحت"}
+            {mode === "work" ? (
+              <>
+                <SubjectIcon icon={activeSub.icon} className="h-4 w-4" />
+                <span>مطالعه: {activeSub.name}</span>
+              </>
+            ) : (
+              <>
+                <Coffee className="h-4 w-4" />
+                <span>زمان استراحت</span>
+              </>
+            )}
           </div>
 
-          <div className="relative mx-auto mb-6 h-[225px] w-[225px]">
-            <svg width="225" height="225" viewBox="0 0 220 220">
+          <div className="relative mx-auto mb-6 h-[210px] w-[210px] sm:h-[225px] sm:w-[225px]">
+            <svg className="h-full w-full" viewBox="0 0 220 220">
               <circle
                 cx="110"
                 cy="110"
@@ -387,7 +408,7 @@ export default function PomodoroClient({
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div
-                className="font-mono text-[44px] leading-none font-extrabold tracking-tight"
+                className="font-mono text-[42px] leading-none font-extrabold tracking-tight sm:text-[46px]"
                 style={{ color: ringColor }}
                 dir="ltr"
               >
@@ -405,33 +426,46 @@ export default function PomodoroClient({
               type="button"
               onClick={toggleTimer}
               disabled={saving}
-              className="bt-btn-primary px-6 py-2.5 text-sm"
+              className="bt-btn-primary inline-flex items-center gap-1.5 px-6 py-2.5 text-sm"
             >
-              {running ? "⏸ توقف" : "▶ شروع"}
+              {running ? (
+                <>
+                  <Pause className="h-4 w-4" />
+                  <span>توقف</span>
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  <span>شروع</span>
+                </>
+              )}
             </button>
             <button
               type="button"
               onClick={resetTimer}
-              className="cursor-pointer rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.1]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.1]"
             >
-              ↩ ریست
+              <RotateCcw className="h-4 w-4" />
+              <span>ریست</span>
             </button>
             {!running && mode === "work" && elapsedSecs >= 60 && (
               <button
                 type="button"
                 onClick={handleSavePartial}
                 disabled={saving}
-                className="cursor-pointer rounded-xl border border-[#00ffa3]/30 bg-[#00ffa3]/12 px-4 py-2.5 text-xs font-bold text-[#00ffa3] transition hover:bg-[#00ffa3]/20"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-[#00ffa3]/30 bg-[#00ffa3]/12 px-4 py-2.5 text-xs font-bold text-[#00ffa3] transition hover:bg-[#00ffa3]/20"
               >
-                💾 ثبت {fmtSecsCompact(elapsedSecs)} طی‌شده
+                <Save className="h-4 w-4" />
+                <span>ثبت {fmtSecsCompact(elapsedSecs)} طی‌شده</span>
               </button>
             )}
           </div>
 
           {/* Work Presets: 25, 45, 90 min */}
           <div className="w-full space-y-2.5">
-            <div className="text-[11px] font-medium text-slate-400">
-              زمان‌های مطالعه
+            <div className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400">
+              <BookOpen className="h-3.5 w-3.5 text-[#00ffa3]" />
+              <span>زمان مطالعه</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {WORK_PRESETS.map((p) => {
@@ -441,7 +475,7 @@ export default function PomodoroClient({
                     key={p.mins}
                     type="button"
                     onClick={() => selectWorkPreset(p.mins)}
-                    className={`cursor-pointer rounded-xl border py-2 text-xs transition ${
+                    className={`cursor-pointer rounded-xl border py-2.5 text-xs transition ${
                       active
                         ? "border-[#00ffa3]/40 bg-[#00ffa3]/14 font-bold text-[#00ffa3]"
                         : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
@@ -454,8 +488,9 @@ export default function PomodoroClient({
             </div>
 
             {/* Break Presets: 5, 15, 30 min */}
-            <div className="pt-1 text-[11px] font-medium text-slate-400">
-              زمان‌های استراحت
+            <div className="inline-flex items-center gap-1 pt-1 text-[11px] font-medium text-slate-400">
+              <Coffee className="h-3.5 w-3.5 text-[#00d4ff]" />
+              <span>زمان استراحت</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {BREAK_PRESETS.map((p) => {
@@ -466,7 +501,7 @@ export default function PomodoroClient({
                     key={p.mins}
                     type="button"
                     onClick={() => selectBreakPreset(p.mins)}
-                    className={`cursor-pointer rounded-xl border py-2 text-xs transition ${
+                    className={`cursor-pointer rounded-xl border py-2.5 text-xs transition ${
                       active
                         ? "border-[#00d4ff]/40 bg-[#00d4ff]/14 font-bold text-[#00d4ff]"
                         : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
@@ -482,10 +517,11 @@ export default function PomodoroClient({
 
         {/* Right Column (6 cols): Subject, Session Metadata & Today's Log */}
         <div className="space-y-4 lg:col-span-6">
-          <div className="bt-card p-5">
+          <div className="bt-card p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-slate-300">
-                📚 انتخاب درس و جزئیات پومودورو
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-200">
+                <Layers className="h-4 w-4 text-[#00ffa3]" />
+                <span>انتخاب درس و جزئیات پومودورو</span>
               </span>
               <Link
                 href="/settings"
@@ -504,7 +540,7 @@ export default function PomodoroClient({
                     key={s.id}
                     type="button"
                     onClick={() => setSelectedSubjectId(s.id)}
-                    className="cursor-pointer rounded-xl border px-3.5 py-2 text-xs transition"
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs transition"
                     style={
                       active
                         ? {
@@ -520,7 +556,8 @@ export default function PomodoroClient({
                           }
                     }
                   >
-                    {s.icon} {s.name}
+                    <SubjectIcon icon={s.icon} className="h-3.5 w-3.5" />
+                    <span>{s.name}</span>
                   </button>
                 );
               })}
@@ -573,9 +610,10 @@ export default function PomodoroClient({
             </div>
           </div>
 
-          <div className="bt-card p-5">
-            <div className="mb-3 text-[13px] font-semibold text-slate-300">
-              📊 آمار مطالعه امروز
+          <div className="bt-card p-4 sm:p-5">
+            <div className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-200">
+              <Activity className="h-4 w-4 text-[#00d4ff]" />
+              <span>آمار مطالعه امروز</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-white/[0.03] p-3.5 text-center">
@@ -600,16 +638,18 @@ export default function PomodoroClient({
             </div>
           </div>
 
-          <div className="bt-card p-5">
+          <div className="bt-card p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-slate-300">
-                🕐 سشن‌ها و گزارش‌های امروز
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-200">
+                <History className="h-4 w-4 text-[#00ffa3]" />
+                <span>سشن‌ها و گزارش‌های امروز</span>
               </span>
               <Link
                 href="/log"
-                className="text-xs text-[#00ffa3] no-underline hover:underline"
+                className="inline-flex items-center gap-0.5 text-xs text-[#00ffa3] no-underline hover:underline"
               >
-                ثبت کامل گزارش ←
+                <span>ثبت کامل</span>
+                <ChevronLeft className="h-3.5 w-3.5" />
               </Link>
             </div>
             {todayLogs.length > 0 ? (
@@ -622,11 +662,17 @@ export default function PomodoroClient({
                   >
                     <div className="min-w-0 flex-1">
                       <div
-                        className="font-bold"
+                        className="inline-flex items-center gap-1.5 font-bold"
                         style={{ color: l.subject_color }}
                       >
-                        {l.subject_icon} {l.subject_name}
-                        {l.topic ? ` — ${l.topic}` : ""}
+                        <SubjectIcon
+                          icon={l.subject_icon}
+                          className="h-3.5 w-3.5"
+                        />
+                        <span className="truncate">
+                          {l.subject_name}
+                          {l.topic ? ` — ${l.topic}` : ""}
+                        </span>
                       </div>
                       <div className="mt-0.5 text-[11px] text-slate-400">
                         <span dir="ltr">

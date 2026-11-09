@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     const name = String(body.name ?? "").trim();
     const color = String(body.color ?? "#00ffa3").trim();
-    const icon = String(body.icon ?? "📘").trim();
+    const icon = String(body.icon ?? "book").trim();
 
     if (!name) {
       return NextResponse.json(

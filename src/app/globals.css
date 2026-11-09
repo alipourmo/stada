@@ -19,6 +19,7 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -29,6 +30,7 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
   background-image:
     radial-gradient(ellipse 75% 45% at 50% -10%, rgba(0, 255, 163, 0.08), transparent 65%),
     radial-gradient(ellipse 50% 35% at 85% 15%, rgba(0, 212, 255, 0.05), transparent 60%);
@@ -51,7 +53,7 @@ body {
 }
 
 .bt-card {
-  background: rgba(10, 15, 30, 0.82);
+  background: rgba(10, 15, 30, 0.84);
   border: 1px solid var(--bd);
   border-radius: 16px;
   backdrop-filter: blur(12px);
@@ -68,6 +70,16 @@ body {
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+@media (max-width: 640px) {
+  .bt-card {
+    border-radius: 14px;
+  }
+  .bt-input {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
 }
 
 .bt-input:focus {
@@ -95,4 +107,8 @@ body {
 .bt-btn-primary:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.safe-bottom-nav {
+  padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { KeyRound, School, Trophy, Users } from "lucide-react";
 import CopyCodeBadge from "@/components/CopyCodeBadge";
 import { toFaDigits } from "@/lib/constants";
 
@@ -107,17 +108,19 @@ export default function ClassManagerClient({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-extrabold text-slate-100 sm:text-[22px]">
-          👥 مدیریت کلاس رقابتی
+      <div className="mb-5 sm:mb-6">
+        <h1 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-100 sm:text-[22px]">
+          <Users className="h-5 w-5 text-[#00ffa3]" />
+          <span>مدیریت کلاس رقابتی</span>
         </h1>
         <p className="mt-1 text-xs text-slate-400 sm:text-[13px]">
-          گروه مطالعاتی خودتان را بسازید یا با کد ۶ رقمی به کلاس دوستان بپیوندید
+          گروه مطالعاتی خودتان را بسازید یا با کد ۶ کاراکتری به کلاس دوستان
+          بپیوندید
         </p>
       </div>
 
       {successMsg && (
-        <div className="mb-5 rounded-2xl border border-[#00ffa3]/30 bg-[#00ffa3]/10 p-4 text-center text-sm text-[#00ffa3]">
+        <div className="mb-5 rounded-2xl border border-[#00ffa3]/30 bg-[#00ffa3]/10 p-4 text-center text-xs text-[#00ffa3] sm:text-sm">
           <div>{successMsg}</div>
           {createdCode && (
             <div className="mt-3 flex justify-center">
@@ -134,11 +137,11 @@ export default function ClassManagerClient({
       )}
 
       {currentClass && (
-        <div className="bt-card mb-5 flex flex-col justify-between gap-4 border-[#00ffa3]/25 p-5 sm:flex-row sm:items-center">
+        <div className="bt-card mb-5 flex flex-col justify-between gap-4 border-[#00ffa3]/25 p-4 sm:flex-row sm:items-center sm:p-5">
           <div>
             <div className="text-xs text-slate-400">کلاس فعلی شما</div>
             <div className="mt-1 flex flex-wrap items-center gap-2.5">
-              <span className="text-lg font-extrabold text-slate-100">
+              <span className="text-base font-extrabold text-slate-100 sm:text-lg">
                 {currentClass.name}
               </span>
               <CopyCodeBadge code={currentClass.code} />
@@ -151,9 +154,10 @@ export default function ClassManagerClient({
           <div className="flex flex-wrap gap-2.5">
             <Link
               href="/leaderboard"
-              className="bt-btn-primary px-4 py-2 text-xs no-underline"
+              className="bt-btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-xs no-underline"
             >
-              🏆 مشاهده لیدربورد
+              <Trophy className="h-3.5 w-3.5" />
+              <span>مشاهده لیدربورد</span>
             </Link>
             <button
               type="button"
@@ -168,9 +172,10 @@ export default function ClassManagerClient({
       )}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="bt-card p-6">
-          <div className="mb-4 text-sm font-bold text-slate-200">
-            🏫 ساختن کلاس جدید
+        <div className="bt-card p-5 sm:p-6">
+          <div className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-slate-200">
+            <School className="h-4 w-4 text-[#00ffa3]" />
+            <span>ساختن کلاس جدید</span>
           </div>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
@@ -181,7 +186,7 @@ export default function ClassManagerClient({
                 type="text"
                 required
                 maxLength={100}
-                placeholder="مثلاً: گروه ارشد زیست ۱۴۰۶"
+                placeholder="مثلاً: گروه کنکور ۱۴۰۶"
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
                 className="bt-input"
@@ -197,9 +202,10 @@ export default function ClassManagerClient({
           </form>
         </div>
 
-        <div className="bt-card p-6">
-          <div className="mb-4 text-sm font-bold text-slate-200">
-            🔑 پیوستن با کد کلاس
+        <div className="bt-card p-5 sm:p-6">
+          <div className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-slate-200">
+            <KeyRound className="h-4 w-4 text-[#00d4ff]" />
+            <span>پیوستن با کد کلاس</span>
           </div>
           <form onSubmit={handleJoin} className="space-y-4">
             <div>

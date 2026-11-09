@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,6 +8,13 @@ export const metadata: Metadata = {
   },
   description:
     "سامانه جامع برنامه‌ریزی هفتگی، ثبت گزارش مطالعه و تست، تایمر پومودورو و تحلیل پیشرفت ویژه کنکور سراسری و آزمون‌های تخصصی",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#030712",
 };
 
 export default function RootLayout({
