@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { BtUser, ensureFreshUserStreak, findUserById } from "./db";
+import { StadaUser, ensureFreshUserStreak, findUserById } from "./db";
 
 export const SESSION_COOKIE_NAME = "bt_session";
 export const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
@@ -14,7 +14,7 @@ export interface SessionPayload {
 
 function getSecretKey(): Uint8Array {
   const secret =
-    process.env.AUTH_SECRET || "biotrack-dev-secret-change-in-production-2026";
+    process.env.AUTH_SECRET || "stada-dev-secret-change-in-production-2026";
   return new TextEncoder().encode(secret);
 }
 
@@ -61,7 +61,7 @@ export async function clearSessionCookie(): Promise<void> {
   jar.delete(SESSION_COOKIE_NAME);
 }
 
-export async function getCurrentUser(): Promise<BtUser | null> {
+export async function getCurrentUser(): Promise<StadaUser | null> {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
@@ -72,7 +72,7 @@ export async function getCurrentUser(): Promise<BtUser | null> {
   return ensureFreshUserStreak(user);
 }
 
-export async function requireUser(): Promise<BtUser> {
+export async function requireUser(): Promise<StadaUser> {
   const user = await getCurrentUser();
   if (!user) {
     redirect("/login");

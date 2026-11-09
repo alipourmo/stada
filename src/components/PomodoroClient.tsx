@@ -2,35 +2,36 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Volume2, VolumeX, PlusCircle } from "lucide-react";
+import Link from "next/link";
+import { Settings2, Trash2, Volume2, VolumeX } from "lucide-react";
 import {
   fmtClockHM,
   fmtSecsCompact,
-  getSubjectInfo,
-  SUBJECT_LIST,
-  SubjectKey,
   toFaDigits,
 } from "@/lib/constants";
-import type { BtStudySession } from "@/lib/db";
+import type { StadaStudyLog, StadaSubject } from "@/lib/db";
 
 interface PomodoroClientProps {
-  initialTodaySessions: BtStudySession[];
+  subjects: StadaSubject[];
+  initialTodayLogs: StadaStudyLog[];
   initialTodayTotal: number;
 }
 
 const WORK_PRESETS = [
   { mins: 25, label: "مطالعه ۲۵ دقیقه" },
   { mins: 45, label: "مطالعه ۴۵ دقیقه" },
-  { mins: 50, label: "مطالعه ۵۰ دقیقه" },
+  { mins: 90, label: "مطالعه ۹۰ دقیقه" },
 ];
 
 const BREAK_PRESETS = [
   { mins: 5, label: "استراحت ۵ دقیقه" },
   { mins: 15, label: "استراحت ۱۵ دقیقه" },
+  { mins: 30, label: "استراحت ۳۰ دقیقه" },
 ];
 
 export default function PomodoroClient({
-  initialTodaySessions,
+  subjects,
+  initialTodayLogs,
   initialTodayTotal,
 }: PomodoroClientProps) {
   const router = useRouter();
@@ -40,11 +41,20 @@ export default function PomodoroClient({
   const [secsLeft, setSecsLeft] = useState(25 * 60);
   const [running, setRunning] = useState(false);
   const [rounds, setRounds] = useState(0);
-  const [curSubject, setCurSubject] = useState<SubjectKey>("cell");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number>(
+    subjects[0]?.id ?? 0
+  );
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const [todaySessions, setTodaySessions] =
-    useState<BtStudySession[]>(initialTodaySessions);
+  // Optional context fields attached to the current study session
+  const [topic, setTopic] = useState("");
+  const [sourceBook, setSourceBook] = useState("");
+  const [pageFrom, setPageFrom] = useState("");
+  const [pageTo, setPageTo] = useState("");
+  const [testsTotal, setTestsTotal] = useState("");
+
+  const [todayLogs, setTodayLogs] =
+    useState<StadaStudyLog[]>(initialTodayLogs);
   const [todayTotal, setTodayTotal] = useState(initialTodayTotal);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{
@@ -52,17 +62,21 @@ export default function PomodoroClient({
     text: string;
   } | null>(null);
 
-  // Manual study entry state
-  const [manualOpen, setManualOpen] = useState(false);
-  const [manualMins, setManualMins] = useState("30");
-
   const targetEndRef = useRef<number | null>(null);
   const completingRef = useRef(false);
 
+  const activeSub =
+    subjects.find((s) => s.id === selectedSubjectId) ??
+    subjects[0] ?? {
+      id: 0,
+      name: "عمومی",
+      color: "#00ffa3",
+      icon: "📘",
+    };
+
   const totalCurrentDuration = mode === "work" ? workDuration : breakDuration;
   const elapsedSecs = Math.max(0, totalCurrentDuration - secsLeft);
-  const activeSubInfo = getSubjectInfo(curSubject);
-  const ringColor = mode === "work" ? activeSubInfo.color : "#00d4ff";
+  const ringColor = mode === "work" ? activeSub.color : "#00d4ff";
 
   function showNotification(type: "ok" | "err", text: string) {
     setToast({ type, text });
@@ -103,35 +117,50 @@ export default function PomodoroClient({
   }, [soundEnabled]);
 
   const persistSession = useCallback(
-    async (subject: SubjectKey, secondsToSave: number) => {
+    async (secondsToSave: number) => {
       setSaving(true);
       try {
-        const res = await fetch("/api/sessions", {
+        const pf = pageFrom.trim() !== "" ? Number(pageFrom) : null;
+        const pt = pageTo.trim() !== "" ? Number(pageTo) : null;
+        const tt = testsTotal.trim() !== "" ? Number(testsTotal) : 0;
+
+        const res = await fetch("/api/logs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subject, seconds: secondsToSave }),
+          body: JSON.stringify({
+            subject_id: selectedSubjectId,
+            duration_seconds: secondsToSave,
+            topic: topic.trim() || null,
+            source_book: sourceBook.trim() || null,
+            page_from: pf,
+            page_to: pt,
+            tests_total: tt,
+          }),
         });
         const data = await res.json();
         if (!res.ok) {
-          showNotification("err", data.error || "خطا در ثبت سشن");
+          showNotification("err", data.error || "خطا در ثبت گزارش پومودورو");
           return false;
         }
         if (typeof data.streak === "number") {
           window.dispatchEvent(
-            new CustomEvent("biotrack:meta", {
+            new CustomEvent("stada:meta", {
               detail: { streak: data.streak },
             })
           );
         }
-        if (typeof data.todayTotal === "number") {
-          setTodayTotal(data.todayTotal);
+        if (typeof data.todayTotalSeconds === "number") {
+          setTodayTotal(data.todayTotalSeconds);
         }
-        if (data.session) {
-          setTodaySessions((prev) => [data.session, ...prev]);
+        if (data.log) {
+          setTodayLogs((prev) => [data.log, ...prev]);
         }
+        setPageFrom("");
+        setPageTo("");
+        setTestsTotal("");
         showNotification(
           "ok",
-          `سشن ${getSubjectInfo(subject).name} (${fmtSecsCompact(secondsToSave)}) با موفقیت ذخیره شد ✓`
+          `پومودوروی «${activeSub.name}» (${fmtSecsCompact(secondsToSave)}) در گزارش امروز ثبت شد ✓`
         );
         router.refresh();
         return true;
@@ -142,7 +171,16 @@ export default function PomodoroClient({
         setSaving(false);
       }
     },
-    [router]
+    [
+      selectedSubjectId,
+      topic,
+      sourceBook,
+      pageFrom,
+      pageTo,
+      testsTotal,
+      activeSub.name,
+      router,
+    ]
   );
 
   // Wall-clock accurate timer interval
@@ -164,7 +202,7 @@ export default function PomodoroClient({
 
         if (mode === "work") {
           setRounds((r) => r + 1);
-          void persistSession(curSubject, workDuration).finally(() => {
+          void persistSession(workDuration).finally(() => {
             completingRef.current = false;
           });
           setMode("break");
@@ -179,21 +217,21 @@ export default function PomodoroClient({
 
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, mode, curSubject, workDuration, breakDuration, playChime, persistSession]);
+  }, [running, mode, workDuration, breakDuration, playChime, persistSession]);
 
-  // Update browser tab title while running
+  // Dynamic browser tab title
   useEffect(() => {
     const m = String(Math.floor(secsLeft / 60)).padStart(2, "0");
     const s = String(secsLeft % 60).padStart(2, "0");
     if (running) {
-      document.title = `${m}:${s} ${mode === "work" ? "🧠" : "☕"} ${activeSubInfo.name} | BioTrack`;
+      document.title = `${m}:${s} ${mode === "work" ? "🧠" : "☕"} ${activeSub.name} | stada`;
     } else {
-      document.title = "پومودورو | BioTrack";
+      document.title = "پومودورو | stada";
     }
     return () => {
-      document.title = "BioTrack — داشبورد کنکور زیست‌شناسی";
+      document.title = "stada — پلتفرم هوشمند برنامه‌ریزی و گزارش مطالعه";
     };
-  }, [secsLeft, running, mode, activeSubInfo.name]);
+  }, [secsLeft, running, mode, activeSub.name]);
 
   function toggleTimer() {
     setRunning((r) => !r);
@@ -227,30 +265,17 @@ export default function PomodoroClient({
     if (mode !== "work" || elapsedSecs < 60) return;
     setRunning(false);
     targetEndRef.current = null;
-    const ok = await persistSession(curSubject, elapsedSecs);
+    const ok = await persistSession(elapsedSecs);
     if (ok) {
       setSecsLeft(workDuration);
     }
   }
 
-  async function handleManualLog(e: React.FormEvent) {
-    e.preventDefault();
-    const mins = Number(manualMins);
-    if (!Number.isFinite(mins) || mins < 1 || mins > 720) {
-      showNotification("err", "لطفاً بین ۱ تا ۷۲۰ دقیقه وارد کنید");
-      return;
-    }
-    const ok = await persistSession(curSubject, Math.round(mins * 60));
-    if (ok) {
-      setManualOpen(false);
-    }
-  }
-
-  async function handleDeleteSession(id: number, seconds: number) {
+  async function handleDeleteLog(id: number, seconds: number) {
     try {
-      const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/logs/${id}`, { method: "DELETE" });
       if (res.ok) {
-        setTodaySessions((prev) => prev.filter((s) => s.id !== id));
+        setTodayLogs((prev) => prev.filter((l) => l.id !== id));
         setTodayTotal((prev) => Math.max(0, prev - seconds));
         router.refresh();
       }
@@ -276,7 +301,7 @@ export default function PomodoroClient({
             ⏱️ تایمر پومودورو
           </h1>
           <p className="mt-1 text-xs text-slate-400 sm:text-[13px]">
-            تمرکز عمیق روی دروس زیست‌شناسی با ثبت خودکار زمان مطالعه و استریک
+            بلاک‌های مطالعه ۲۵، ۴۵ و ۹۰ دقیقه‌ای با استراحت‌های ۵، ۱۵ و ۳۰ دقیقه‌ای
           </p>
         </div>
 
@@ -311,18 +336,25 @@ export default function PomodoroClient({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Timer Card */}
-        <div className="bt-card flex flex-col items-center justify-center p-7 text-center sm:p-8">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+        {/* Timer Column (6 cols) */}
+        <div className="bt-card flex flex-col items-center justify-center p-6 text-center sm:p-8 lg:col-span-6">
           <div
-            className={`mb-5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-bold ${
+            className="mb-5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-bold"
+            style={
               mode === "work"
-                ? "bg-[#00ffa3]/12 text-[#00ffa3]"
-                : "bg-[#00d4ff]/12 text-[#00d4ff]"
-            }`}
+                ? {
+                    backgroundColor: `${activeSub.color}20`,
+                    color: activeSub.color,
+                  }
+                : {
+                    backgroundColor: "rgba(0,212,255,0.14)",
+                    color: "#00d4ff",
+                  }
+            }
           >
             {mode === "work"
-              ? `🧠 زمان مطالعه — ${activeSubInfo.name}`
+              ? `🧠 مطالعه: ${activeSub.icon} ${activeSub.name}`
               : "☕ زمان استراحت"}
           </div>
 
@@ -349,11 +381,11 @@ export default function PomodoroClient({
                 transform="rotate(-90 110 110)"
                 style={{
                   transition: "stroke-dashoffset 0.35s linear, stroke 0.3s ease",
-                  filter: `drop-shadow(0 0 8px ${ringColor}45)`,
+                  filter: `drop-shadow(0 0 8px ${ringColor}55)`,
                 }}
               />
             </svg>
-            <div className=" absolute inset-0 flex flex-col items-center justify-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div
                 className="font-mono text-[44px] leading-none font-extrabold tracking-tight"
                 style={{ color: ringColor }}
@@ -367,8 +399,8 @@ export default function PomodoroClient({
             </div>
           </div>
 
-          {/* Primary Action Buttons */}
-          <div className="mb-5 flex flex-wrap items-center justify-center gap-2.5">
+          {/* Controls */}
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-2.5">
             <button
               type="button"
               onClick={toggleTimer}
@@ -396,78 +428,90 @@ export default function PomodoroClient({
             )}
           </div>
 
-          {/* Mode & Duration Presets */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {WORK_PRESETS.map((p) => {
-              const active = mode === "work" && workDuration === p.mins * 60;
-              return (
-                <button
-                  key={p.mins}
-                  type="button"
-                  onClick={() => selectWorkPreset(p.mins)}
-                  className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs transition ${
-                    active
-                      ? "border-[#00ffa3]/35 bg-[#00ffa3]/12 font-semibold text-[#00ffa3]"
-                      : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
-            {BREAK_PRESETS.map((p) => {
-              const active = mode === "break" && breakDuration === p.mins * 60;
-              return (
-                <button
-                  key={p.mins}
-                  type="button"
-                  onClick={() => selectBreakPreset(p.mins)}
-                  className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs transition ${
-                    active
-                      ? "border-[#00d4ff]/35 bg-[#00d4ff]/12 font-semibold text-[#00d4ff]"
-                      : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
+          {/* Work Presets: 25, 45, 90 min */}
+          <div className="w-full space-y-2.5">
+            <div className="text-[11px] font-medium text-slate-400">
+              زمان‌های مطالعه
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {WORK_PRESETS.map((p) => {
+                const active = mode === "work" && workDuration === p.mins * 60;
+                return (
+                  <button
+                    key={p.mins}
+                    type="button"
+                    onClick={() => selectWorkPreset(p.mins)}
+                    className={`cursor-pointer rounded-xl border py-2 text-xs transition ${
+                      active
+                        ? "border-[#00ffa3]/40 bg-[#00ffa3]/14 font-bold text-[#00ffa3]"
+                        : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Break Presets: 5, 15, 30 min */}
+            <div className="pt-1 text-[11px] font-medium text-slate-400">
+              زمان‌های استراحت
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {BREAK_PRESETS.map((p) => {
+                const active =
+                  mode === "break" && breakDuration === p.mins * 60;
+                return (
+                  <button
+                    key={p.mins}
+                    type="button"
+                    onClick={() => selectBreakPreset(p.mins)}
+                    className={`cursor-pointer rounded-xl border py-2 text-xs transition ${
+                      active
+                        ? "border-[#00d4ff]/40 bg-[#00d4ff]/14 font-bold text-[#00d4ff]"
+                        : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Right Column: Subject + Today Stats + Log */}
-        <div className="space-y-4">
+        {/* Right Column (6 cols): Subject, Session Metadata & Today's Log */}
+        <div className="space-y-4 lg:col-span-6">
           <div className="bt-card p-5">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[13px] font-semibold text-slate-300">
-                📚 درس فعلی
+                📚 انتخاب درس و جزئیات پومودورو
               </span>
-              <button
-                type="button"
-                onClick={() => setManualOpen((v) => !v)}
-                className="inline-flex cursor-pointer items-center gap-1 text-xs font-semibold text-[#00d4ff] hover:underline"
+              <Link
+                href="/settings"
+                className="inline-flex items-center gap-1 text-xs text-slate-400 no-underline hover:text-[#00ffa3]"
               >
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span>ثبت دستی مطالعه</span>
-              </button>
+                <Settings2 className="h-3.5 w-3.5" />
+                <span>ویرایش دروس</span>
+              </Link>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {SUBJECT_LIST.map((s) => {
-                const active = curSubject === s.key;
+            <div className="mb-4 flex flex-wrap gap-2">
+              {subjects.map((s) => {
+                const active = selectedSubjectId === s.id;
                 return (
                   <button
-                    key={s.key}
+                    key={s.id}
                     type="button"
-                    onClick={() => setCurSubject(s.key)}
-                    className="cursor-pointer rounded-lg border px-3.5 py-2 text-[13px] transition"
+                    onClick={() => setSelectedSubjectId(s.id)}
+                    className="cursor-pointer rounded-xl border px-3.5 py-2 text-xs transition"
                     style={
                       active
                         ? {
-                            backgroundColor: `${s.color}20`,
+                            backgroundColor: `${s.color}22`,
                             color: s.color,
-                            borderColor: `${s.color}66`,
-                            fontWeight: 700,
+                            borderColor: `${s.color}70`,
+                            fontWeight: 800,
                           }
                         : {
                             backgroundColor: "rgba(255,255,255,0.03)",
@@ -476,54 +520,70 @@ export default function PomodoroClient({
                           }
                     }
                   >
-                    {s.emoji} {s.name}
+                    {s.icon} {s.name}
                   </button>
                 );
               })}
             </div>
 
-            {manualOpen && (
-              <form
-                onSubmit={handleManualLog}
-                className="mt-4 flex flex-wrap items-end gap-2.5 border-t border-white/10 pt-3.5"
-              >
-                <div className="flex-1">
-                  <label className="mb-1 block text-[11px] text-slate-400">
-                    مدت زمان مطالعه «{activeSubInfo.name}» (دقیقه)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={720}
-                    required
-                    dir="ltr"
-                    value={manualMins}
-                    onChange={(e) => setManualMins(e.target.value)}
-                    className="bt-input text-xs"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="bt-btn-primary px-4 py-2.5 text-xs"
-                >
-                  {saving ? "ثبت..." : "افزودن به امروز"}
-                </button>
-              </form>
-            )}
+            <div className="grid grid-cols-1 gap-2.5 border-t border-white/[0.07] pt-3.5 sm:grid-cols-2">
+              <input
+                type="text"
+                placeholder="مبحث فعلی (اختیاری)"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="bt-input text-xs"
+              />
+              <input
+                type="text"
+                placeholder="منبع / کتاب (اختیاری)"
+                value={sourceBook}
+                onChange={(e) => setSourceBook(e.target.value)}
+                className="bt-input text-xs"
+              />
+              <div className="grid grid-cols-3 gap-2 sm:col-span-2">
+                <input
+                  type="number"
+                  min={1}
+                  dir="ltr"
+                  placeholder="از صفحه"
+                  value={pageFrom}
+                  onChange={(e) => setPageFrom(e.target.value)}
+                  className="bt-input text-center text-xs"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  dir="ltr"
+                  placeholder="تا صفحه"
+                  value={pageTo}
+                  onChange={(e) => setPageTo(e.target.value)}
+                  className="bt-input text-center text-xs"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  dir="ltr"
+                  placeholder="تعداد تست"
+                  value={testsTotal}
+                  onChange={(e) => setTestsTotal(e.target.value)}
+                  className="bt-input text-center text-xs"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="bt-card p-5">
             <div className="mb-3 text-[13px] font-semibold text-slate-300">
-              📊 آمار امروز
+              📊 آمار مطالعه امروز
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-white/[0.03] p-3.5 text-center">
                 <div className="text-2xl leading-none font-extrabold text-[#00ffa3]">
-                  {toFaDigits(todaySessions.length + rounds * 0)}
+                  {toFaDigits(todayLogs.length)}
                 </div>
                 <div className="mt-1.5 text-[11px] text-slate-400">
-                  سشن‌های ثبت‌شده امروز
+                  نوبت‌های ثبت‌شده امروز
                 </div>
               </div>
               <div className="rounded-xl bg-white/[0.03] p-3.5 text-center">
@@ -534,56 +594,64 @@ export default function PomodoroClient({
                   {fmtClockHM(todayTotal)}
                 </div>
                 <div className="mt-1.5 text-[11px] text-slate-400">
-                  کل مطالعه امروز
+                  کل زمان مطالعه امروز
                 </div>
               </div>
             </div>
           </div>
 
           <div className="bt-card p-5">
-            <div className="mb-3 text-[13px] font-semibold text-slate-300">
-              🕐 سشن‌های امروز
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-slate-300">
+                🕐 سشن‌ها و گزارش‌های امروز
+              </span>
+              <Link
+                href="/log"
+                className="text-xs text-[#00ffa3] no-underline hover:underline"
+              >
+                ثبت کامل گزارش ←
+              </Link>
             </div>
-            {todaySessions.length > 0 ? (
-              <div className="max-h-[250px] space-y-2 overflow-y-auto pl-1">
-                {todaySessions.map((s) => {
-                  const sub = getSubjectInfo(s.subject);
-                  const timeStr = new Date(s.created_at).toLocaleTimeString(
-                    "fa-IR",
-                    {
-                      timeZone: "Asia/Tehran",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }
-                  );
-                  return (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between rounded-xl border border-[#00ffa3]/15 bg-[#00ffa3]/[0.03] px-3.5 py-2.5 text-[13px]"
-                    >
-                      <div>
-                        <div className="font-medium text-slate-200">
-                          {sub.emoji} {sub.name}
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-slate-400">
-                          <span dir="ltr">{fmtSecsCompact(s.seconds)}</span> •{" "}
-                          {timeStr}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteSession(s.id, s.seconds)}
-                        title="حذف سشن"
-                        className="cursor-pointer rounded-md p-1.5 text-slate-500 transition hover:bg-red-500/15 hover:text-red-400"
+            {todayLogs.length > 0 ? (
+              <div className="max-h-[230px] space-y-2 overflow-y-auto pl-1">
+                {todayLogs.map((l) => (
+                  <div
+                    key={l.id}
+                    className="flex items-center justify-between rounded-xl border bg-white/[0.02] px-3.5 py-2.5 text-xs"
+                    style={{ borderColor: `${l.subject_color}30` }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="font-bold"
+                        style={{ color: l.subject_color }}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                        {l.subject_icon} {l.subject_name}
+                        {l.topic ? ` — ${l.topic}` : ""}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-slate-400">
+                        <span dir="ltr">
+                          {fmtSecsCompact(l.duration_seconds)}
+                        </span>
+                        {l.pages_count > 0
+                          ? ` • ${toFaDigits(l.pages_count)} صفحه`
+                          : ""}
+                        {l.tests_total > 0
+                          ? ` • ${toFaDigits(l.tests_total)} تست`
+                          : ""}
+                      </div>
                     </div>
-                  );
-                })}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteLog(l.id, l.duration_seconds)}
+                      className="cursor-pointer rounded-md p-1.5 text-slate-500 transition hover:bg-red-500/15 hover:text-red-400"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="py-8 text-center text-xs text-slate-500">
+              <div className="py-6 text-center text-xs text-slate-500">
                 هنوز سشنی در امروز ثبت نشده است
               </div>
             )}

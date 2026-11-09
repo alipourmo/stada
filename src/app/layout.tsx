@@ -3,11 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "BioTrack — داشبورد کنکور زیست‌شناسی",
-    template: "%s | BioTrack",
+    default: "stada — پلتفرم هوشمند برنامه‌ریزی و گزارش مطالعه",
+    template: "%s | stada",
   },
   description:
-    "پلتفرم هوشمند مدیریت مطالعه، تایمر پومودورو، تحلیل تست و رقابت کلاسی ویژه داوطلبان کنکور زیست‌شناسی",
+    "سامانه جامع برنامه‌ریزی هفتگی، ثبت گزارش مطالعه و تست، تایمر پومودورو و تحلیل پیشرفت ویژه کنکور سراسری و آزمون‌های تخصصی",
 };
 
 export default function RootLayout({

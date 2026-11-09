@@ -5,7 +5,7 @@ import { getTehranToday } from "@/lib/constants";
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    service: "BioTrack",
+    service: "stada",
     storage: getStorageMode(),
     tehranDate: getTehranToday(),
   });

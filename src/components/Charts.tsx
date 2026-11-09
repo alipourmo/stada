@@ -7,12 +7,12 @@ import {
   BarElement,
   PointElement,
   LineElement,
-  RadialLinearScale,
+  ArcElement,
   Filler,
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar, Line, Radar } from "react-chartjs-2";
+import { Bar, Doughnut, Line } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
@@ -20,7 +20,7 @@ ChartJS.register(
   BarElement,
   PointElement,
   LineElement,
-  RadialLinearScale,
+  ArcElement,
   Filler,
   Tooltip,
   Legend
@@ -28,36 +28,176 @@ ChartJS.register(
 
 const BASE_TOOLTIP = {
   backgroundColor: "#0f172a",
-  borderColor: "rgba(255,255,255,0.12)",
+  borderColor: "rgba(255,255,255,0.14)",
   borderWidth: 1,
   titleColor: "#e2e8f0",
-  bodyColor: "#94a3b8",
-  cornerRadius: 8,
+  bodyColor: "#cbd5e1",
+  cornerRadius: 9,
   padding: 10,
   titleFont: { family: "Vazirmatn, sans-serif", size: 12 },
   bodyFont: { family: "Vazirmatn, sans-serif", size: 12 },
 };
 
-export function WeeklyStudyBarChart({
+export interface SubjectSeries {
+  label: string;
+  color: string;
+  data: number[];
+}
+
+export function StackedSubjectTimelineChart({
   labels,
-  data,
+  series,
+  unitLabel = "دقیقه",
 }: {
   labels: string[];
-  data: number[];
+  series: SubjectSeries[];
+  unitLabel?: string;
 }) {
   return (
-    <div className="relative h-[210px] w-full">
+    <div className="relative h-[245px] w-full">
       <Bar
         data={{
           labels,
+          datasets: series.map((s) => ({
+            label: s.label,
+            data: s.data,
+            backgroundColor: `${s.color}cc`,
+            hoverBackgroundColor: s.color,
+            borderColor: s.color,
+            borderWidth: 1,
+            borderRadius: 4,
+          })),
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: series.length > 0,
+              position: "top",
+              labels: {
+                color: "#cbd5e1",
+                boxWidth: 10,
+                boxHeight: 10,
+                usePointStyle: true,
+                pointStyle: "circle",
+                font: { family: "Vazirmatn, sans-serif", size: 11 },
+              },
+            },
+            tooltip: {
+              ...BASE_TOOLTIP,
+              callbacks: {
+                label: (ctx) =>
+                  ` ${ctx.dataset.label}: ${ctx.parsed.y ?? 0} ${unitLabel}`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { color: "rgba(255,255,255,0.04)" },
+              ticks: {
+                color: "#64748b",
+                font: { family: "Vazirmatn, sans-serif", size: 11 },
+              },
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              grid: { color: "rgba(255,255,255,0.04)" },
+              ticks: {
+                color: "#64748b",
+                font: { family: "Vazirmatn, sans-serif", size: 11 },
+              },
+            },
+          },
+        }}
+      />
+    </div>
+  );
+}
+
+export function SubjectDoughnutChart({
+  items,
+  unitLabel = "دقیقه",
+}: {
+  items: { name: string; color: string; value: number }[];
+  unitLabel?: string;
+}) {
+  const nonZero = items.filter((i) => i.value > 0);
+  if (nonZero.length === 0) {
+    return (
+      <div className="flex h-[245px] items-center justify-center text-xs text-slate-500">
+        هنوز داده‌ای در این بازه زمانی ثبت نشده است
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-[245px] w-full">
+      <Doughnut
+        data={{
+          labels: nonZero.map((i) => i.name),
           datasets: [
             {
-              label: "دقیقه مطالعه",
-              data,
-              backgroundColor: "rgba(0, 255, 163, 0.55)",
-              hoverBackgroundColor: "rgba(0, 255, 163, 0.85)",
-              borderColor: "#00ffa3",
-              borderWidth: 1,
+              data: nonZero.map((i) => i.value),
+              backgroundColor: nonZero.map((i) => `${i.color}dd`),
+              hoverBackgroundColor: nonZero.map((i) => i.color),
+              borderColor: "#0a0f1e",
+              borderWidth: 2,
+            },
+          ],
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "62%",
+          plugins: {
+            legend: {
+              position: "right",
+              labels: {
+                color: "#cbd5e1",
+                boxWidth: 11,
+                boxHeight: 11,
+                usePointStyle: true,
+                pointStyle: "circle",
+                font: { family: "Vazirmatn, sans-serif", size: 11 },
+              },
+            },
+            tooltip: {
+              ...BASE_TOOLTIP,
+              callbacks: {
+                label: (ctx) =>
+                  ` ${ctx.label}: ${ctx.parsed} ${unitLabel}`,
+              },
+            },
+          },
+        }}
+      />
+    </div>
+  );
+}
+
+export function SubjectColorBarChart({
+  items,
+  unitLabel,
+}: {
+  items: { name: string; color: string; value: number }[];
+  unitLabel: string;
+}) {
+  return (
+    <div className="relative h-[225px] w-full">
+      <Bar
+        data={{
+          labels: items.map((i) => i.name),
+          datasets: [
+            {
+              label: unitLabel,
+              data: items.map((i) => i.value),
+              backgroundColor: items.map((i) => `${i.color}cc`),
+              hoverBackgroundColor: items.map((i) => i.color),
+              borderColor: items.map((i) => i.color),
+              borderWidth: 1.5,
               borderRadius: 6,
             },
           ],
@@ -70,7 +210,7 @@ export function WeeklyStudyBarChart({
             tooltip: {
               ...BASE_TOOLTIP,
               callbacks: {
-                label: (ctx) => ` ${ctx.parsed.y ?? 0} دقیقه`,
+                label: (ctx) => ` ${ctx.parsed.y ?? 0} ${unitLabel}`,
               },
             },
           },
@@ -78,7 +218,7 @@ export function WeeklyStudyBarChart({
             x: {
               grid: { color: "rgba(255,255,255,0.04)" },
               ticks: {
-                color: "#64748b",
+                color: "#94a3b8",
                 font: { family: "Vazirmatn, sans-serif", size: 11 },
               },
             },
@@ -97,32 +237,35 @@ export function WeeklyStudyBarChart({
   );
 }
 
-export function TestAccuracyLineChart({
-  labels,
-  data,
+export function TestAccuracyTrendChart({
+  points,
 }: {
-  labels: string[];
-  data: number[];
+  points: {
+    label: string;
+    accuracy: number;
+    subjectName: string;
+    color: string;
+  }[];
 }) {
   return (
-    <div className="relative h-[210px] w-full">
+    <div className="relative h-[225px] w-full">
       <Line
         data={{
-          labels,
+          labels: points.map((p) => p.label),
           datasets: [
             {
               label: "دقت تست",
-              data,
-              borderColor: "#ff6b9d",
-              backgroundColor: "rgba(255, 107, 157, 0.12)",
-              borderWidth: 2.5,
-              pointBackgroundColor: "#ff6b9d",
+              data: points.map((p) => p.accuracy),
+              borderColor: "#00d4ff",
+              backgroundColor: "rgba(0, 212, 255, 0.1)",
+              borderWidth: 2,
+              pointBackgroundColor: points.map((p) => p.color),
               pointBorderColor: "#0f172a",
               pointBorderWidth: 1.5,
-              pointRadius: 4,
-              pointHoverRadius: 6,
+              pointRadius: 5,
+              pointHoverRadius: 7,
               fill: true,
-              tension: 0.38,
+              tension: 0.35,
             },
           ],
         }}
@@ -134,6 +277,11 @@ export function TestAccuracyLineChart({
             tooltip: {
               ...BASE_TOOLTIP,
               callbacks: {
+                title: (items) => {
+                  const idx = items[0]?.dataIndex ?? 0;
+                  const pt = points[idx];
+                  return pt ? `${pt.subjectName} (${pt.label})` : "";
+                },
                 label: (ctx) => ` دقت: ${ctx.parsed.y ?? 0}%`,
               },
             },
@@ -155,60 +303,6 @@ export function TestAccuracyLineChart({
                 callback: (val) => `${val}%`,
                 font: { family: "Vazirmatn, sans-serif", size: 11 },
               },
-            },
-          },
-        }}
-      />
-    </div>
-  );
-}
-
-export function SubjectMasteryRadarChart({
-  labels,
-  data,
-}: {
-  labels: string[];
-  data: number[];
-}) {
-  return (
-    <div className="relative h-[250px] w-full">
-      <Radar
-        data={{
-          labels,
-          datasets: [
-            {
-              label: "دقیقه مطالعه",
-              data,
-              borderColor: "#00ffa3",
-              backgroundColor: "rgba(0, 255, 163, 0.14)",
-              borderWidth: 2,
-              pointBackgroundColor: "#00ffa3",
-              pointRadius: 4,
-            },
-          ],
-        }}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              ...BASE_TOOLTIP,
-              callbacks: {
-                label: (ctx) => ` ${ctx.parsed.r ?? 0} دقیقه`,
-              },
-            },
-          },
-          scales: {
-            r: {
-              beginAtZero: true,
-              grid: { color: "rgba(255,255,255,0.07)" },
-              angleLines: { color: "rgba(255,255,255,0.07)" },
-              pointLabels: {
-                color: "#94a3b8",
-                font: { family: "Vazirmatn, sans-serif", size: 12 },
-              },
-              ticks: { display: false },
             },
           },
         }}

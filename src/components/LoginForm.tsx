@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { STUDY_FIELD_PRESETS } from "@/lib/constants";
 
 export default function LoginForm({
   initialTab = "login",
@@ -19,9 +20,16 @@ export default function LoginForm({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedPresetLabel, setSelectedPresetLabel] = useState(
+    STUDY_FIELD_PRESETS[0].label
+  );
+  const [customFieldName, setCustomFieldName] = useState("");
   const [classMode, setClassMode] = useState<"join" | "create">("join");
   const [classCode, setClassCode] = useState("");
   const [newClassName, setNewClassName] = useState("");
+
+  const isCustomField =
+    selectedPresetLabel === "سایر رشته‌ها / آزمون دلخواه";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,6 +39,11 @@ export default function LoginForm({
     try {
       const endpoint =
         tab === "login" ? "/api/auth/login" : "/api/auth/register";
+      const studyField =
+        isCustomField && customFieldName.trim()
+          ? customFieldName.trim()
+          : selectedPresetLabel;
+
       const payload =
         tab === "login"
           ? { email, password }
@@ -38,6 +51,7 @@ export default function LoginForm({
               name,
               email,
               password,
+              study_field: studyField,
               class_code: classMode === "join" ? classCode : "",
               new_class_name: classMode === "create" ? newClassName : "",
             };
@@ -64,14 +78,19 @@ export default function LoginForm({
 
   return (
     <div className="flex min-h-screen items-center justify-center p-5">
-      <div className="w-full max-w-[440px] rounded-[22px] border border-white/[0.08] bg-[#0f172a]/90 p-7 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-9">
+      <div className="w-full max-w-[460px] rounded-[22px] border border-white/[0.08] bg-[#0f172a]/90 p-7 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-9">
         <div className="mb-7 text-center">
-          <div className="mb-2 text-[46px] leading-none">🧬</div>
-          <h1 className="text-[26px] font-extrabold tracking-tight text-[#00ffa3]">
-            BioTrack
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#00ffa3] to-[#00d4ff] text-2xl font-black text-[#030712] shadow-xl shadow-[#00ffa3]/20">
+            S
+          </div>
+          <h1
+            className="text-[28px] font-black tracking-tight text-[#00ffa3]"
+            dir="ltr"
+          >
+            stada
           </h1>
           <p className="mt-1 text-[13px] text-slate-400">
-            داشبورد هوشمند کنکور زیست‌شناسی
+            پلتفرم هوشمند برنامه‌ریزی، گزارش مطالعه و تحلیل کنکور
           </p>
         </div>
 
@@ -115,19 +134,54 @@ export default function LoginForm({
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {tab === "register" && (
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                نام کامل
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="مثلاً: علی رضایی"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bt-input"
-              />
-            </div>
+            <>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                  نام کامل
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="مثلاً: علی رضایی"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="bt-input"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-400">
+                  رشته تحصیلی / آزمون هدف{" "}
+                  <span className="text-[10px] text-slate-500">
+                    (بعداً در پروفایل قابل تغییر است)
+                  </span>
+                </label>
+                <select
+                  value={selectedPresetLabel}
+                  onChange={(e) => setSelectedPresetLabel(e.target.value)}
+                  className="bt-input bg-[#0f172a]"
+                >
+                  {STUDY_FIELD_PRESETS.map((p) => (
+                    <option
+                      key={p.id}
+                      value={p.label}
+                      className="bg-[#0f172a] text-slate-100"
+                    >
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+                {isCustomField && (
+                  <input
+                    type="text"
+                    placeholder="نام رشته یا آزمون دلخواه خود را بنویسید..."
+                    value={customFieldName}
+                    onChange={(e) => setCustomFieldName(e.target.value)}
+                    className="bt-input mt-2"
+                  />
+                )}
+              </div>
+            </>
           )}
 
           <div>
@@ -184,7 +238,7 @@ export default function LoginForm({
             <div className="pt-1">
               <div className="mb-2 flex items-center justify-between">
                 <label className="text-xs font-medium text-slate-400">
-                  کلاس رقابتی{" "}
+                  کلاس یا گروه رقابتی{" "}
                   <span className="text-[11px] text-slate-500">(اختیاری)</span>
                 </label>
                 <div className="flex gap-1.5 text-[11px]">
@@ -227,7 +281,7 @@ export default function LoginForm({
                 <input
                   type="text"
                   maxLength={100}
-                  placeholder="نام کلاس جدید (مثلاً: ارشد زیست ۱۴۰۶)"
+                  placeholder="نام کلاس جدید (مثلاً: گروه کنکور ۱۴۰۶)"
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
                   className="bt-input"
@@ -244,13 +298,13 @@ export default function LoginForm({
             {loading
               ? "در حال پردازش..."
               : tab === "login"
-                ? "ورود به داشبورد"
-                : "ثبت‌نام رایگان"}
+                ? "ورود به stada"
+                : "ساخت حساب رایگان"}
           </button>
         </form>
 
         <div className="mt-5 text-center text-xs text-slate-400">
-          می‌خواهید کلاس بسازید؟{" "}
+          مشاور یا سرگروه هستید؟{" "}
           <button
             type="button"
             onClick={() => {
@@ -260,7 +314,7 @@ export default function LoginForm({
             }}
             className="cursor-pointer font-semibold text-[#00ffa3] hover:underline"
           >
-            ایجاد کلاس جدید
+            ایجاد کلاس رقابتی جدید
           </button>
         </div>
       </div>

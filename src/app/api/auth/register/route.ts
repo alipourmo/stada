@@ -14,6 +14,9 @@ export async function POST(req: Request) {
     const name = String(body.name ?? "").trim();
     const email = String(body.email ?? "").trim().toLowerCase();
     const password = String(body.password ?? "");
+    const studyField = String(
+      body.study_field ?? "کنکور سراسری — علوم تجربی"
+    ).trim();
     const classCode = String(body.class_code ?? "")
       .trim()
       .toUpperCase();
@@ -63,6 +66,7 @@ export async function POST(req: Request) {
       name,
       email,
       passwordHash,
+      studyField,
       classCode: !newClassName && classCode ? classCode : null,
     });
 
@@ -87,6 +91,7 @@ export async function POST(req: Request) {
         id: user.id,
         name: user.name,
         email: user.email,
+        study_field: user.study_field,
         class_code: createdClassCode ?? user.class_code,
       },
     });

@@ -5,17 +5,22 @@ import {
   calcAccuracy,
   calcCompetitiveScore,
   calcKonkurPercent,
+  calcMinutesBetween,
   DEFAULT_TARGET_HOURS,
-  getSubjectInfo,
+  getIranianDayIndex,
+  getPresetByFieldLabel,
   getTehranToday,
+  isValidHexColor,
   shiftDateISO,
+  STUDY_FIELD_PRESETS,
 } from "./constants";
 
-export interface BtUser {
+export interface StadaUser {
   id: number;
   name: string;
   email: string;
   password_hash: string;
+  study_field: string;
   class_code: string | null;
   streak: number;
   last_study_date: string | null;
@@ -24,7 +29,59 @@ export interface BtUser {
   created_at: string;
 }
 
-export interface BtClass {
+export interface StadaSubject {
+  id: number;
+  user_id: number;
+  name: string;
+  color: string;
+  icon: string;
+  sort_order: number;
+  is_archived: boolean;
+  created_at: string;
+}
+
+export interface StadaStudyLog {
+  id: number;
+  user_id: number;
+  subject_id: number | null;
+  subject_name: string;
+  subject_color: string;
+  subject_icon: string;
+  log_date: string;
+  duration_seconds: number;
+  topic: string | null;
+  source_book: string | null;
+  page_from: number | null;
+  page_to: number | null;
+  pages_count: number;
+  tests_total: number;
+  tests_wrong: number | null;
+  tests_blank: number | null;
+  test_accuracy: number | null;
+  konkur_score: number | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface StadaWeeklyPlan {
+  id: number;
+  user_id: number;
+  subject_id: number | null;
+  subject_name: string;
+  subject_color: string;
+  subject_icon: string;
+  plan_date: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  planned_minutes: number;
+  topic: string;
+  source_note: string | null;
+  is_completed: boolean;
+  created_at: string;
+}
+
+export interface StadaClass {
   id: number;
   code: string;
   name: string;
@@ -32,36 +89,15 @@ export interface BtClass {
   created_at: string;
 }
 
-export interface BtStudySession {
-  id: number;
-  user_id: number;
-  subject: string;
-  seconds: number;
-  session_date: string;
-  created_at: string;
-}
-
-export interface BtTestResult {
-  id: number;
-  user_id: number;
-  subject: string;
-  total: number;
-  wrong: number;
-  blank: number;
-  accuracy: number;
-  konkur_score: number | null;
-  note: string | null;
-  test_date: string;
-  created_at: string;
-}
-
 export interface LeaderboardMember {
   id: number;
   name: string;
+  study_field: string;
   streak: number;
   study_seconds: number;
   study_hours: number;
   total_tests: number;
+  total_pages: number;
   avg_accuracy: number;
   score: number;
 }
@@ -93,12 +129,13 @@ function getSupabase(): SupabaseClient {
 }
 
 // ── Row Normalizers ────────────────────────────────────────────
-function mapUser(row: Record<string, unknown>): BtUser {
+function mapUser(row: Record<string, unknown>): StadaUser {
   return {
     id: Number(row.id),
     name: String(row.name ?? ""),
     email: String(row.email ?? ""),
     password_hash: String(row.password_hash ?? ""),
+    study_field: String(row.study_field || "کنکور سراسری — علوم تجربی"),
     class_code: row.class_code ? String(row.class_code) : null,
     streak: Number(row.streak ?? 0),
     last_study_date: row.last_study_date ? String(row.last_study_date) : null,
@@ -110,72 +147,149 @@ function mapUser(row: Record<string, unknown>): BtUser {
   };
 }
 
-function mapClass(row: Record<string, unknown>): BtClass {
+function mapSubject(row: Record<string, unknown>): StadaSubject {
   return {
     id: Number(row.id),
-    code: String(row.code ?? ""),
+    user_id: Number(row.user_id),
     name: String(row.name ?? ""),
-    created_by: row.created_by !== null && row.created_by !== undefined ? Number(row.created_by) : null,
+    color: String(row.color ?? "#00ffa3"),
+    icon: String(row.icon ?? "📘"),
+    sort_order: Number(row.sort_order ?? 0),
+    is_archived: Boolean(row.is_archived ?? false),
     created_at: String(row.created_at ?? new Date().toISOString()),
   };
 }
 
-function mapSession(row: Record<string, unknown>): BtStudySession {
+function mapLog(row: Record<string, unknown>): StadaStudyLog {
   return {
     id: Number(row.id),
     user_id: Number(row.user_id),
-    subject: String(row.subject ?? "other"),
-    seconds: Number(row.seconds ?? 0),
-    session_date: String(row.session_date ?? ""),
-    created_at: String(row.created_at ?? new Date().toISOString()),
-  };
-}
-
-function mapTest(row: Record<string, unknown>): BtTestResult {
-  return {
-    id: Number(row.id),
-    user_id: Number(row.user_id),
-    subject: String(row.subject ?? "other"),
-    total: Number(row.total ?? 0),
-    wrong: Number(row.wrong ?? 0),
-    blank: Number(row.blank ?? 0),
-    accuracy: Number(row.accuracy ?? 0),
+    subject_id:
+      row.subject_id !== null && row.subject_id !== undefined
+        ? Number(row.subject_id)
+        : null,
+    subject_name: String(row.subject_name ?? "عمومی"),
+    subject_color: String(row.subject_color ?? "#00ffa3"),
+    subject_icon: String(row.subject_icon ?? "📘"),
+    log_date: String(row.log_date ?? ""),
+    duration_seconds: Number(row.duration_seconds ?? 0),
+    topic: row.topic ? String(row.topic) : null,
+    source_book: row.source_book ? String(row.source_book) : null,
+    page_from:
+      row.page_from !== null && row.page_from !== undefined
+        ? Number(row.page_from)
+        : null,
+    page_to:
+      row.page_to !== null && row.page_to !== undefined
+        ? Number(row.page_to)
+        : null,
+    pages_count: Number(row.pages_count ?? 0),
+    tests_total: Number(row.tests_total ?? 0),
+    tests_wrong:
+      row.tests_wrong !== null && row.tests_wrong !== undefined
+        ? Number(row.tests_wrong)
+        : null,
+    tests_blank:
+      row.tests_blank !== null && row.tests_blank !== undefined
+        ? Number(row.tests_blank)
+        : null,
+    test_accuracy:
+      row.test_accuracy !== null && row.test_accuracy !== undefined
+        ? Number(row.test_accuracy)
+        : null,
     konkur_score:
       row.konkur_score !== null && row.konkur_score !== undefined
         ? Number(row.konkur_score)
         : null,
     note: row.note ? String(row.note) : null,
-    test_date: String(row.test_date ?? ""),
+    created_at: String(row.created_at ?? new Date().toISOString()),
+  };
+}
+
+function mapPlan(row: Record<string, unknown>): StadaWeeklyPlan {
+  return {
+    id: Number(row.id),
+    user_id: Number(row.user_id),
+    subject_id:
+      row.subject_id !== null && row.subject_id !== undefined
+        ? Number(row.subject_id)
+        : null,
+    subject_name: String(row.subject_name ?? ""),
+    subject_color: String(row.subject_color ?? "#00ffa3"),
+    subject_icon: String(row.subject_icon ?? "📘"),
+    plan_date: String(row.plan_date ?? ""),
+    day_of_week: Number(row.day_of_week ?? 0),
+    start_time: String(row.start_time ?? "09:00"),
+    end_time: String(row.end_time ?? "11:00"),
+    planned_minutes: Number(row.planned_minutes ?? 60),
+    topic: String(row.topic ?? ""),
+    source_note: row.source_note ? String(row.source_note) : null,
+    is_completed: Boolean(row.is_completed ?? false),
+    created_at: String(row.created_at ?? new Date().toISOString()),
+  };
+}
+
+function mapClass(row: Record<string, unknown>): StadaClass {
+  return {
+    id: Number(row.id),
+    code: String(row.code ?? ""),
+    name: String(row.name ?? ""),
+    created_by:
+      row.created_by !== null && row.created_by !== undefined
+        ? Number(row.created_by)
+        : null,
     created_at: String(row.created_at ?? new Date().toISOString()),
   };
 }
 
 // ── Local Dev File Store (used ONLY when SUPABASE_URL is unset) ─
 interface LocalDbData {
-  seq: { users: number; classes: number; sessions: number; tests: number };
-  users: BtUser[];
-  classes: BtClass[];
-  sessions: BtStudySession[];
-  tests: BtTestResult[];
+  seq: {
+    users: number;
+    classes: number;
+    subjects: number;
+    logs: number;
+    plans: number;
+  };
+  users: StadaUser[];
+  classes: StadaClass[];
+  subjects: StadaSubject[];
+  logs: StadaStudyLog[];
+  plans: StadaWeeklyPlan[];
 }
 
-const LOCAL_DB_PATH = path.join(process.cwd(), ".cache", "biotrack-dev.json");
+const LOCAL_DB_PATH = path.join(process.cwd(), ".cache", "stada-dev.json");
 
 function readLocalDb(): LocalDbData {
   try {
     if (fs.existsSync(LOCAL_DB_PATH)) {
       const raw = fs.readFileSync(LOCAL_DB_PATH, "utf8");
-      return JSON.parse(raw) as LocalDbData;
+      const parsed = JSON.parse(raw) as Partial<LocalDbData>;
+      return {
+        seq: {
+          users: parsed.seq?.users ?? 0,
+          classes: parsed.seq?.classes ?? 0,
+          subjects: parsed.seq?.subjects ?? 0,
+          logs: parsed.seq?.logs ?? 0,
+          plans: parsed.seq?.plans ?? 0,
+        },
+        users: parsed.users ?? [],
+        classes: parsed.classes ?? [],
+        subjects: parsed.subjects ?? [],
+        logs: parsed.logs ?? [],
+        plans: parsed.plans ?? [],
+      };
     }
   } catch {
-    // ignore corrupt local dev cache
+    // ignore corrupt dev cache
   }
   return {
-    seq: { users: 0, classes: 0, sessions: 0, tests: 0 },
+    seq: { users: 0, classes: 0, subjects: 0, logs: 0, plans: 0 },
     users: [],
     classes: [],
-    sessions: [],
-    tests: [],
+    subjects: [],
+    logs: [],
+    plans: [],
   };
 }
 
@@ -207,9 +321,11 @@ export function computeEffectiveStreak(
   return 0;
 }
 
-// ── Repository Functions ───────────────────────────────────────
+// ── User & Auth ────────────────────────────────────────────────
 
-export async function findUserByEmail(email: string): Promise<BtUser | null> {
+export async function findUserByEmail(
+  email: string
+): Promise<StadaUser | null> {
   const normalized = email.trim().toLowerCase();
   if (!isSupabaseConfigured()) {
     const db = readLocalDb();
@@ -224,7 +340,7 @@ export async function findUserByEmail(email: string): Promise<BtUser | null> {
   return data ? mapUser(data) : null;
 }
 
-export async function findUserById(id: number): Promise<BtUser | null> {
+export async function findUserById(id: number): Promise<StadaUser | null> {
   if (!isSupabaseConfigured()) {
     const db = readLocalDb();
     return db.users.find((u) => u.id === id) ?? null;
@@ -238,7 +354,9 @@ export async function findUserById(id: number): Promise<BtUser | null> {
   return data ? mapUser(data) : null;
 }
 
-export async function ensureFreshUserStreak(user: BtUser): Promise<BtUser> {
+export async function ensureFreshUserStreak(
+  user: StadaUser
+): Promise<StadaUser> {
   const effective = computeEffectiveStreak(user.streak, user.last_study_date);
   if (effective === user.streak) return user;
 
@@ -259,7 +377,864 @@ export async function ensureFreshUserStreak(user: BtUser): Promise<BtUser> {
   return { ...user, streak: 0 };
 }
 
-export async function findClassByCode(code: string): Promise<BtClass | null> {
+export async function createUser(params: {
+  name: string;
+  email: string;
+  passwordHash: string;
+  studyField: string;
+  classCode: string | null;
+}): Promise<StadaUser> {
+  const email = params.email.trim().toLowerCase();
+  const name = params.name.trim();
+  const studyField =
+    params.studyField.trim() || "کنکور سراسری — علوم تجربی";
+  const classCode = params.classCode
+    ? params.classCode.trim().toUpperCase()
+    : null;
+
+  const preset = getPresetByFieldLabel(studyField);
+
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const id = ++db.seq.users;
+    const newUser: StadaUser = {
+      id,
+      name,
+      email,
+      password_hash: params.passwordHash,
+      study_field: studyField,
+      class_code: classCode,
+      streak: 0,
+      last_study_date: null,
+      target_exam_date: null,
+      target_hours: DEFAULT_TARGET_HOURS,
+      created_at: new Date().toISOString(),
+    };
+    db.users.push(newUser);
+
+    preset.subjects.forEach((s, idx) => {
+      db.subjects.push({
+        id: ++db.seq.subjects,
+        user_id: id,
+        name: s.name,
+        color: s.color,
+        icon: s.icon,
+        sort_order: idx,
+        is_archived: false,
+        created_at: new Date().toISOString(),
+      });
+    });
+
+    writeLocalDb(db);
+    return newUser;
+  }
+
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from("bt_users")
+    .insert({
+      name,
+      email,
+      password_hash: params.passwordHash,
+      study_field: studyField,
+      class_code: classCode,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw new Error(error.message);
+  const createdUser = mapUser(data);
+
+  if (preset.subjects.length > 0) {
+    await sb.from("bt_subjects").insert(
+      preset.subjects.map((s, idx) => ({
+        user_id: createdUser.id,
+        name: s.name,
+        color: s.color,
+        icon: s.icon,
+        sort_order: idx,
+      }))
+    );
+  }
+
+  return createdUser;
+}
+
+export async function updateUserProfile(
+  userId: number,
+  params: {
+    name?: string;
+    studyField?: string;
+    targetExamDate?: string | null;
+    targetHours?: number;
+  }
+): Promise<StadaUser> {
+  const current = await findUserById(userId);
+  if (!current) throw new Error("کاربر یافت نشد");
+
+  const nextName = params.name?.trim() ? params.name.trim() : current.name;
+  const nextField = params.studyField?.trim()
+    ? params.studyField.trim()
+    : current.study_field;
+  const nextHours =
+    typeof params.targetHours === "number" && Number.isFinite(params.targetHours)
+      ? Math.min(5000, Math.max(10, Math.round(params.targetHours)))
+      : current.target_hours;
+  const nextExamDate =
+    params.targetExamDate === undefined
+      ? current.target_exam_date
+      : params.targetExamDate && /^\d{4}-\d{2}-\d{2}$/.test(params.targetExamDate)
+        ? params.targetExamDate
+        : null;
+
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const u = db.users.find((x) => x.id === userId);
+    if (!u) throw new Error("کاربر یافت نشد");
+    u.name = nextName;
+    u.study_field = nextField;
+    u.target_exam_date = nextExamDate;
+    u.target_hours = nextHours;
+    writeLocalDb(db);
+    return u;
+  }
+
+  const { data, error } = await getSupabase()
+    .from("bt_users")
+    .update({
+      name: nextName,
+      study_field: nextField,
+      target_exam_date: nextExamDate,
+      target_hours: nextHours,
+    })
+    .eq("id", userId)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapUser(data);
+}
+
+// ── Custom Subjects (bt_subjects) ──────────────────────────────
+
+export async function getUserSubjects(userId: number): Promise<StadaSubject[]> {
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    let list = db.subjects
+      .filter((s) => s.user_id === userId && !s.is_archived)
+      .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
+
+    if (list.length === 0) {
+      const user = db.users.find((u) => u.id === userId);
+      const preset = getPresetByFieldLabel(user?.study_field ?? "");
+      preset.subjects.forEach((s, idx) => {
+        db.subjects.push({
+          id: ++db.seq.subjects,
+          user_id: userId,
+          name: s.name,
+          color: s.color,
+          icon: s.icon,
+          sort_order: idx,
+          is_archived: false,
+          created_at: new Date().toISOString(),
+        });
+      });
+      writeLocalDb(db);
+      list = db.subjects
+        .filter((s) => s.user_id === userId && !s.is_archived)
+        .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
+    }
+    return list;
+  }
+
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from("bt_subjects")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("is_archived", false)
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) throw new Error(error.message);
+
+  if (!data || data.length === 0) {
+    const user = await findUserById(userId);
+    const preset = getPresetByFieldLabel(user?.study_field ?? "");
+    const { data: seeded, error: seedErr } = await sb
+      .from("bt_subjects")
+      .insert(
+        preset.subjects.map((s, idx) => ({
+          user_id: userId,
+          name: s.name,
+          color: s.color,
+          icon: s.icon,
+          sort_order: idx,
+        }))
+      )
+      .select("*");
+    if (seedErr) throw new Error(seedErr.message);
+    return (seeded ?? []).map((r) => mapSubject(r));
+  }
+
+  return data.map((r) => mapSubject(r));
+}
+
+export async function createSubject(
+  userId: number,
+  params: { name: string; color: string; icon?: string }
+): Promise<StadaSubject> {
+  const name = params.name.trim().slice(0, 100);
+  const color = isValidHexColor(params.color) ? params.color.trim() : "#00ffa3";
+  const icon = params.icon?.trim() ? params.icon.trim().slice(0, 12) : "📘";
+
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const maxOrder = db.subjects
+      .filter((s) => s.user_id === userId)
+      .reduce((m, s) => Math.max(m, s.sort_order), -1);
+    const created: StadaSubject = {
+      id: ++db.seq.subjects,
+      user_id: userId,
+      name,
+      color,
+      icon,
+      sort_order: maxOrder + 1,
+      is_archived: false,
+      created_at: new Date().toISOString(),
+    };
+    db.subjects.push(created);
+    writeLocalDb(db);
+    return created;
+  }
+
+  const existing = await getUserSubjects(userId);
+  const nextOrder =
+    existing.reduce((m, s) => Math.max(m, s.sort_order), -1) + 1;
+
+  const { data, error } = await getSupabase()
+    .from("bt_subjects")
+    .insert({
+      user_id: userId,
+      name,
+      color,
+      icon,
+      sort_order: nextOrder,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapSubject(data);
+}
+
+export async function updateSubject(
+  userId: number,
+  subjectId: number,
+  params: { name?: string; color?: string; icon?: string }
+): Promise<StadaSubject | null> {
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const s = db.subjects.find(
+      (x) => x.id === subjectId && x.user_id === userId
+    );
+    if (!s) return null;
+    if (params.name?.trim()) s.name = params.name.trim().slice(0, 100);
+    if (params.color && isValidHexColor(params.color))
+      s.color = params.color.trim();
+    if (params.icon?.trim()) s.icon = params.icon.trim().slice(0, 12);
+
+    // Sync color/name/icon across user logs & weekly plans
+    for (const log of db.logs) {
+      if (log.user_id === userId && log.subject_id === subjectId) {
+        log.subject_name = s.name;
+        log.subject_color = s.color;
+        log.subject_icon = s.icon;
+      }
+    }
+    for (const plan of db.plans) {
+      if (plan.user_id === userId && plan.subject_id === subjectId) {
+        plan.subject_name = s.name;
+        plan.subject_color = s.color;
+        plan.subject_icon = s.icon;
+      }
+    }
+    writeLocalDb(db);
+    return s;
+  }
+
+  const sb = getSupabase();
+  const patch: Record<string, unknown> = {};
+  if (params.name?.trim()) patch.name = params.name.trim().slice(0, 100);
+  if (params.color && isValidHexColor(params.color))
+    patch.color = params.color.trim();
+  if (params.icon?.trim()) patch.icon = params.icon.trim().slice(0, 12);
+
+  const { data, error } = await sb
+    .from("bt_subjects")
+    .update(patch)
+    .eq("id", subjectId)
+    .eq("user_id", userId)
+    .select("*")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const updated = mapSubject(data);
+
+  // Sync logs and weekly plans with updated subject visual identity
+  await Promise.all([
+    sb
+      .from("bt_study_logs")
+      .update({
+        subject_name: updated.name,
+        subject_color: updated.color,
+        subject_icon: updated.icon,
+      })
+      .eq("user_id", userId)
+      .eq("subject_id", subjectId),
+    sb
+      .from("bt_weekly_plans")
+      .update({
+        subject_name: updated.name,
+        subject_color: updated.color,
+        subject_icon: updated.icon,
+      })
+      .eq("user_id", userId)
+      .eq("subject_id", subjectId),
+  ]);
+
+  return updated;
+}
+
+export async function deleteSubject(
+  userId: number,
+  subjectId: number
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const idx = db.subjects.findIndex(
+      (s) => s.id === subjectId && s.user_id === userId
+    );
+    if (idx === -1) return false;
+    db.subjects.splice(idx, 1);
+    writeLocalDb(db);
+    return true;
+  }
+
+  const { error } = await getSupabase()
+    .from("bt_subjects")
+    .delete()
+    .eq("id", subjectId)
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return true;
+}
+
+export async function applyPresetSubjectsForUser(
+  userId: number,
+  presetId: string,
+  replaceExisting = false
+): Promise<StadaSubject[]> {
+  const preset =
+    STUDY_FIELD_PRESETS.find((p) => p.id === presetId) ??
+    STUDY_FIELD_PRESETS[0];
+
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    if (replaceExisting) {
+      db.subjects = db.subjects.filter((s) => s.user_id !== userId);
+    }
+    const existingNames = new Set(
+      db.subjects
+        .filter((s) => s.user_id === userId && !s.is_archived)
+        .map((s) => s.name)
+    );
+    let nextOrder = db.subjects
+      .filter((s) => s.user_id === userId)
+      .reduce((m, s) => Math.max(m, s.sort_order), -1);
+
+    for (const s of preset.subjects) {
+      if (!existingNames.has(s.name)) {
+        db.subjects.push({
+          id: ++db.seq.subjects,
+          user_id: userId,
+          name: s.name,
+          color: s.color,
+          icon: s.icon,
+          sort_order: ++nextOrder,
+          is_archived: false,
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+    writeLocalDb(db);
+    return db.subjects.filter((s) => s.user_id === userId && !s.is_archived);
+  }
+
+  const sb = getSupabase();
+  if (replaceExisting) {
+    await sb.from("bt_subjects").delete().eq("user_id", userId);
+  }
+
+  const current = await (async () => {
+    const { data } = await sb
+      .from("bt_subjects")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_archived", false);
+    return (data ?? []).map((r) => mapSubject(r));
+  })();
+
+  const existingNames = new Set(current.map((c) => c.name));
+  let nextOrder = current.reduce((m, s) => Math.max(m, s.sort_order), -1);
+  const toInsert = preset.subjects
+    .filter((s) => !existingNames.has(s.name))
+    .map((s) => ({
+      user_id: userId,
+      name: s.name,
+      color: s.color,
+      icon: s.icon,
+      sort_order: ++nextOrder,
+    }));
+
+  if (toInsert.length > 0) {
+    await sb.from("bt_subjects").insert(toInsert);
+  }
+
+  return getUserSubjects(userId);
+}
+
+// ── Unified Study & Test Logs (bt_study_logs) ──────────────────
+
+export interface CreateStudyLogInput {
+  userId: number;
+  subjectId: number;
+  logDate?: string;
+  durationSeconds: number;
+  topic?: string | null;
+  sourceBook?: string | null;
+  pageFrom?: number | null;
+  pageTo?: number | null;
+  pagesCount?: number | null;
+  testsTotal?: number;
+  testsWrong?: number | null;
+  testsBlank?: number | null;
+  note?: string | null;
+}
+
+export async function createStudyLog(input: CreateStudyLogInput): Promise<{
+  log: StadaStudyLog;
+  streak: number;
+  todayTotalSeconds: number;
+}> {
+  const subjects = await getUserSubjects(input.userId);
+  const sub =
+    subjects.find((s) => s.id === input.subjectId) ??
+    subjects[0] ?? {
+      id: null,
+      name: "عمومی",
+      color: "#00ffa3",
+      icon: "📘",
+    };
+
+  const today = getTehranToday();
+  const yesterday = shiftDateISO(today, -1);
+  const logDate =
+    input.logDate && /^\d{4}-\d{2}-\d{2}$/.test(input.logDate)
+      ? input.logDate
+      : today;
+
+  const durationSeconds = Math.max(
+    0,
+    Math.min(86400, Math.round(input.durationSeconds || 0))
+  );
+
+  const pageFrom =
+    input.pageFrom !== null &&
+    input.pageFrom !== undefined &&
+    Number.isFinite(input.pageFrom) &&
+    input.pageFrom >= 0
+      ? Math.floor(input.pageFrom)
+      : null;
+  const pageTo =
+    input.pageTo !== null &&
+    input.pageTo !== undefined &&
+    Number.isFinite(input.pageTo) &&
+    input.pageTo >= 0
+      ? Math.floor(input.pageTo)
+      : null;
+
+  let pagesCount = 0;
+  if (
+    input.pagesCount !== null &&
+    input.pagesCount !== undefined &&
+    Number.isFinite(input.pagesCount) &&
+    input.pagesCount > 0
+  ) {
+    pagesCount = Math.floor(input.pagesCount);
+  } else if (pageFrom !== null && pageTo !== null && pageTo >= pageFrom) {
+    pagesCount = pageTo - pageFrom + 1;
+  }
+
+  const testsTotal = Math.max(0, Math.floor(input.testsTotal ?? 0));
+  let testsWrong: number | null = null;
+  let testsBlank: number | null = null;
+  let testAccuracy: number | null = null;
+  let konkurScore: number | null = null;
+
+  if (
+    testsTotal > 0 &&
+    input.testsWrong !== null &&
+    input.testsWrong !== undefined &&
+    Number.isFinite(input.testsWrong)
+  ) {
+    testsWrong = Math.max(0, Math.floor(input.testsWrong));
+    testsBlank =
+      input.testsBlank !== null &&
+      input.testsBlank !== undefined &&
+      Number.isFinite(input.testsBlank)
+        ? Math.max(0, Math.floor(input.testsBlank))
+        : 0;
+    if (testsWrong + testsBlank <= testsTotal) {
+      testAccuracy = calcAccuracy(testsTotal, testsWrong, testsBlank);
+      konkurScore = calcKonkurPercent(testsTotal, testsWrong, testsBlank);
+    }
+  }
+
+  const topic = input.topic?.trim() ? input.topic.trim().slice(0, 200) : null;
+  const sourceBook = input.sourceBook?.trim()
+    ? input.sourceBook.trim().slice(0, 150)
+    : null;
+  const note = input.note?.trim() ? input.note.trim().slice(0, 800) : null;
+
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const log: StadaStudyLog = {
+      id: ++db.seq.logs,
+      user_id: input.userId,
+      subject_id: sub.id,
+      subject_name: sub.name,
+      subject_color: sub.color,
+      subject_icon: sub.icon,
+      log_date: logDate,
+      duration_seconds: durationSeconds,
+      topic,
+      source_book: sourceBook,
+      page_from: pageFrom,
+      page_to: pageTo,
+      pages_count: pagesCount,
+      tests_total: testsTotal,
+      tests_wrong: testsWrong,
+      tests_blank: testsBlank,
+      test_accuracy: testAccuracy,
+      konkur_score: konkurScore,
+      note,
+      created_at: new Date().toISOString(),
+    };
+    db.logs.push(log);
+
+    const u = db.users.find((x) => x.id === input.userId);
+    let streak = u?.streak ?? 0;
+    if (u && logDate === today) {
+      if (u.last_study_date === yesterday) {
+        streak = (u.streak || 0) + 1;
+      } else if (u.last_study_date === today) {
+        streak = Math.max(1, u.streak || 1);
+      } else {
+        streak = 1;
+      }
+      u.streak = streak;
+      u.last_study_date = today;
+    }
+    writeLocalDb(db);
+
+    const todayTotalSeconds = db.logs
+      .filter((l) => l.user_id === input.userId && l.log_date === today)
+      .reduce((acc, l) => acc + l.duration_seconds, 0);
+
+    return { log, streak, todayTotalSeconds };
+  }
+
+  const sb = getSupabase();
+  const { data: inserted, error: insertErr } = await sb
+    .from("bt_study_logs")
+    .insert({
+      user_id: input.userId,
+      subject_id: sub.id,
+      subject_name: sub.name,
+      subject_color: sub.color,
+      subject_icon: sub.icon,
+      log_date: logDate,
+      duration_seconds: durationSeconds,
+      topic,
+      source_book: sourceBook,
+      page_from: pageFrom,
+      page_to: pageTo,
+      pages_count: pagesCount,
+      tests_total: testsTotal,
+      tests_wrong: testsWrong,
+      tests_blank: testsBlank,
+      test_accuracy: testAccuracy,
+      konkur_score: konkurScore,
+      note,
+    })
+    .select("*")
+    .single();
+  if (insertErr) throw new Error(insertErr.message);
+
+  const user = await findUserById(input.userId);
+  let streak = user?.streak ?? 0;
+  if (user && logDate === today) {
+    if (user.last_study_date === yesterday) {
+      streak = (user.streak || 0) + 1;
+    } else if (user.last_study_date === today) {
+      streak = Math.max(1, user.streak || 1);
+    } else {
+      streak = 1;
+    }
+    await sb
+      .from("bt_users")
+      .update({ streak, last_study_date: today })
+      .eq("id", input.userId);
+  }
+
+  const { data: todayRows } = await sb
+    .from("bt_study_logs")
+    .select("duration_seconds")
+    .eq("user_id", input.userId)
+    .eq("log_date", today);
+
+  const todayTotalSeconds = (todayRows ?? []).reduce(
+    (sum, r) => sum + Number(r.duration_seconds ?? 0),
+    0
+  );
+
+  return { log: mapLog(inserted), streak, todayTotalSeconds };
+}
+
+export async function getUserStudyLogs(
+  userId: number,
+  opts?: { fromDate?: string; toDate?: string; limit?: number }
+): Promise<StadaStudyLog[]> {
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const list = db.logs
+      .filter(
+        (l) =>
+          l.user_id === userId &&
+          (!opts?.fromDate || l.log_date >= opts.fromDate) &&
+          (!opts?.toDate || l.log_date <= opts.toDate)
+      )
+      .sort(
+        (a, b) =>
+          b.log_date.localeCompare(a.log_date) ||
+          b.created_at.localeCompare(a.created_at)
+      );
+    return opts?.limit ? list.slice(0, opts.limit) : list;
+  }
+
+  let q = getSupabase()
+    .from("bt_study_logs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("log_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (opts?.fromDate) q = q.gte("log_date", opts.fromDate);
+  if (opts?.toDate) q = q.lte("log_date", opts.toDate);
+  if (opts?.limit) q = q.limit(opts.limit);
+
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => mapLog(r));
+}
+
+export async function deleteStudyLog(
+  userId: number,
+  logId: number
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const idx = db.logs.findIndex(
+      (l) => l.id === logId && l.user_id === userId
+    );
+    if (idx === -1) return false;
+    db.logs.splice(idx, 1);
+    writeLocalDb(db);
+    return true;
+  }
+
+  const { error } = await getSupabase()
+    .from("bt_study_logs")
+    .delete()
+    .eq("id", logId)
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return true;
+}
+
+// ── Weekly Study Planner (bt_weekly_plans) ─────────────────────
+
+export async function getUserWeeklyPlans(
+  userId: number,
+  fromDate: string,
+  toDate: string
+): Promise<StadaWeeklyPlan[]> {
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    return db.plans
+      .filter(
+        (p) =>
+          p.user_id === userId &&
+          p.plan_date >= fromDate &&
+          p.plan_date <= toDate
+      )
+      .sort(
+        (a, b) =>
+          a.plan_date.localeCompare(b.plan_date) ||
+          a.start_time.localeCompare(b.start_time)
+      );
+  }
+
+  const { data, error } = await getSupabase()
+    .from("bt_weekly_plans")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("plan_date", fromDate)
+    .lte("plan_date", toDate)
+    .order("plan_date", { ascending: true })
+    .order("start_time", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => mapPlan(r));
+}
+
+export async function createWeeklyPlan(params: {
+  userId: number;
+  subjectId: number;
+  planDate: string;
+  startTime: string;
+  endTime: string;
+  topic: string;
+  sourceNote?: string | null;
+}): Promise<StadaWeeklyPlan> {
+  const subjects = await getUserSubjects(params.userId);
+  const sub =
+    subjects.find((s) => s.id === params.subjectId) ??
+    subjects[0] ?? {
+      id: null,
+      name: "عمومی",
+      color: "#00ffa3",
+      icon: "📘",
+    };
+
+  const plannedMinutes = calcMinutesBetween(params.startTime, params.endTime);
+  if (plannedMinutes <= 0) {
+    throw new Error("ساعت پایان باید بعد از ساعت شروع باشد");
+  }
+  const dayOfWeek = getIranianDayIndex(params.planDate);
+  const topic = params.topic.trim().slice(0, 250);
+  const sourceNote = params.sourceNote?.trim()
+    ? params.sourceNote.trim().slice(0, 200)
+    : null;
+
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const plan: StadaWeeklyPlan = {
+      id: ++db.seq.plans,
+      user_id: params.userId,
+      subject_id: sub.id,
+      subject_name: sub.name,
+      subject_color: sub.color,
+      subject_icon: sub.icon,
+      plan_date: params.planDate,
+      day_of_week: dayOfWeek,
+      start_time: params.startTime,
+      end_time: params.endTime,
+      planned_minutes: plannedMinutes,
+      topic,
+      source_note: sourceNote,
+      is_completed: false,
+      created_at: new Date().toISOString(),
+    };
+    db.plans.push(plan);
+    writeLocalDb(db);
+    return plan;
+  }
+
+  const { data, error } = await getSupabase()
+    .from("bt_weekly_plans")
+    .insert({
+      user_id: params.userId,
+      subject_id: sub.id,
+      subject_name: sub.name,
+      subject_color: sub.color,
+      subject_icon: sub.icon,
+      plan_date: params.planDate,
+      day_of_week: dayOfWeek,
+      start_time: params.startTime,
+      end_time: params.endTime,
+      planned_minutes: plannedMinutes,
+      topic,
+      source_note: sourceNote,
+      is_completed: false,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapPlan(data);
+}
+
+export async function toggleWeeklyPlanCompleted(
+  userId: number,
+  planId: number,
+  isCompleted: boolean
+): Promise<StadaWeeklyPlan | null> {
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const p = db.plans.find((x) => x.id === planId && x.user_id === userId);
+    if (!p) return null;
+    p.is_completed = isCompleted;
+    writeLocalDb(db);
+    return p;
+  }
+
+  const { data, error } = await getSupabase()
+    .from("bt_weekly_plans")
+    .update({ is_completed: isCompleted })
+    .eq("id", planId)
+    .eq("user_id", userId)
+    .select("*")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapPlan(data) : null;
+}
+
+export async function deleteWeeklyPlan(
+  userId: number,
+  planId: number
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) {
+    const db = readLocalDb();
+    const idx = db.plans.findIndex(
+      (p) => p.id === planId && p.user_id === userId
+    );
+    if (idx === -1) return false;
+    db.plans.splice(idx, 1);
+    writeLocalDb(db);
+    return true;
+  }
+
+  const { error } = await getSupabase()
+    .from("bt_weekly_plans")
+    .delete()
+    .eq("id", planId)
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return true;
+}
+
+// ── Classes & Competitive Leaderboard ──────────────────────────
+
+export async function findClassByCode(
+  code: string
+): Promise<StadaClass | null> {
   const clean = code.trim().toUpperCase();
   if (!clean) return null;
 
@@ -277,87 +1252,10 @@ export async function findClassByCode(code: string): Promise<BtClass | null> {
   return data ? mapClass(data) : null;
 }
 
-export async function createUser(params: {
-  name: string;
-  email: string;
-  passwordHash: string;
-  classCode: string | null;
-}): Promise<BtUser> {
-  const email = params.email.trim().toLowerCase();
-  const name = params.name.trim();
-  const classCode = params.classCode
-    ? params.classCode.trim().toUpperCase()
-    : null;
-
-  if (!isSupabaseConfigured()) {
-    const db = readLocalDb();
-    const id = ++db.seq.users;
-    const newUser: BtUser = {
-      id,
-      name,
-      email,
-      password_hash: params.passwordHash,
-      class_code: classCode,
-      streak: 0,
-      last_study_date: null,
-      target_exam_date: null,
-      target_hours: DEFAULT_TARGET_HOURS,
-      created_at: new Date().toISOString(),
-    };
-    db.users.push(newUser);
-    writeLocalDb(db);
-    return newUser;
-  }
-
-  const { data, error } = await getSupabase()
-    .from("bt_users")
-    .insert({
-      name,
-      email,
-      password_hash: params.passwordHash,
-      class_code: classCode,
-    })
-    .select("*")
-    .single();
-
-  if (error) throw new Error(error.message);
-  return mapUser(data);
-}
-
-export async function updateUserGoals(
-  userId: number,
-  params: { targetExamDate: string | null; targetHours: number }
-): Promise<BtUser> {
-  const hours = Math.min(5000, Math.max(10, Math.round(params.targetHours)));
-  const examDate =
-    params.targetExamDate && /^\d{4}-\d{2}-\d{2}$/.test(params.targetExamDate)
-      ? params.targetExamDate
-      : null;
-
-  if (!isSupabaseConfigured()) {
-    const db = readLocalDb();
-    const u = db.users.find((x) => x.id === userId);
-    if (!u) throw new Error("کاربر یافت نشد");
-    u.target_exam_date = examDate;
-    u.target_hours = hours;
-    writeLocalDb(db);
-    return u;
-  }
-
-  const { data, error } = await getSupabase()
-    .from("bt_users")
-    .update({ target_exam_date: examDate, target_hours: hours })
-    .eq("id", userId)
-    .select("*")
-    .single();
-  if (error) throw new Error(error.message);
-  return mapUser(data);
-}
-
 export async function createClassForUser(params: {
   name: string;
   userId: number;
-}): Promise<BtClass> {
+}): Promise<StadaClass> {
   const name = params.name.trim();
   let code = generateClassCode();
 
@@ -369,7 +1267,7 @@ export async function createClassForUser(params: {
 
   if (!isSupabaseConfigured()) {
     const db = readLocalDb();
-    const cls: BtClass = {
+    const cls: StadaClass = {
       id: ++db.seq.classes,
       code,
       name,
@@ -403,7 +1301,7 @@ export async function createClassForUser(params: {
 export async function joinClassByCode(
   userId: number,
   code: string
-): Promise<BtClass | null> {
+): Promise<StadaClass | null> {
   const cls = await findClassByCode(code);
   if (!cls) return null;
 
@@ -443,257 +1341,8 @@ export async function leaveCurrentClass(userId: number): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export async function recordStudySession(params: {
-  userId: number;
-  subject: string;
-  seconds: number;
-}): Promise<{
-  session: BtStudySession;
-  streak: number;
-  todayTotal: number;
-}> {
-  const subject = getSubjectInfo(params.subject).key;
-  const seconds = Math.floor(params.seconds);
-  const today = getTehranToday();
-  const yesterday = shiftDateISO(today, -1);
-
-  if (!isSupabaseConfigured()) {
-    const db = readLocalDb();
-    const session: BtStudySession = {
-      id: ++db.seq.sessions,
-      user_id: params.userId,
-      subject,
-      seconds,
-      session_date: today,
-      created_at: new Date().toISOString(),
-    };
-    db.sessions.push(session);
-
-    let streak = 1;
-    const u = db.users.find((x) => x.id === params.userId);
-    if (u) {
-      if (u.last_study_date === yesterday) {
-        streak = (u.streak || 0) + 1;
-      } else if (u.last_study_date === today) {
-        streak = Math.max(1, u.streak || 1);
-      } else {
-        streak = 1;
-      }
-      u.streak = streak;
-      u.last_study_date = today;
-    }
-    writeLocalDb(db);
-
-    const todayTotal = db.sessions
-      .filter((s) => s.user_id === params.userId && s.session_date === today)
-      .reduce((acc, s) => acc + s.seconds, 0);
-
-    return { session, streak, todayTotal };
-  }
-
-  const sb = getSupabase();
-  const { data: inserted, error: insertErr } = await sb
-    .from("bt_study_sessions")
-    .insert({
-      user_id: params.userId,
-      subject,
-      seconds,
-      session_date: today,
-    })
-    .select("*")
-    .single();
-  if (insertErr) throw new Error(insertErr.message);
-
-  const user = await findUserById(params.userId);
-  let streak = 1;
-  if (user) {
-    if (user.last_study_date === yesterday) {
-      streak = (user.streak || 0) + 1;
-    } else if (user.last_study_date === today) {
-      streak = Math.max(1, user.streak || 1);
-    } else {
-      streak = 1;
-    }
-    await sb
-      .from("bt_users")
-      .update({ streak, last_study_date: today })
-      .eq("id", params.userId);
-  }
-
-  const { data: todayRows } = await sb
-    .from("bt_study_sessions")
-    .select("seconds")
-    .eq("user_id", params.userId)
-    .eq("session_date", today);
-
-  const todayTotal = (todayRows ?? []).reduce(
-    (sum, r) => sum + Number(r.seconds ?? 0),
-    0
-  );
-
-  return { session: mapSession(inserted), streak, todayTotal };
-}
-
-export async function deleteStudySession(
-  userId: number,
-  sessionId: number
-): Promise<boolean> {
-  if (!isSupabaseConfigured()) {
-    const db = readLocalDb();
-    const idx = db.sessions.findIndex(
-      (s) => s.id === sessionId && s.user_id === userId
-    );
-    if (idx === -1) return false;
-    db.sessions.splice(idx, 1);
-    writeLocalDb(db);
-    return true;
-  }
-
-  const { error } = await getSupabase()
-    .from("bt_study_sessions")
-    .delete()
-    .eq("id", sessionId)
-    .eq("user_id", userId);
-  if (error) throw new Error(error.message);
-  return true;
-}
-
-export async function getUserStudySessions(
-  userId: number,
-  sinceDate?: string
-): Promise<BtStudySession[]> {
-  if (!isSupabaseConfigured()) {
-    const db = readLocalDb();
-    return db.sessions
-      .filter(
-        (s) =>
-          s.user_id === userId && (!sinceDate || s.session_date >= sinceDate)
-      )
-      .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }
-
-  let q = getSupabase()
-    .from("bt_study_sessions")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-
-  if (sinceDate) {
-    q = q.gte("session_date", sinceDate);
-  }
-
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => mapSession(r));
-}
-
-export async function recordTestResult(params: {
-  userId: number;
-  subject: string;
-  total: number;
-  wrong: number;
-  blank?: number;
-  note?: string | null;
-}): Promise<BtTestResult> {
-  const subject = getSubjectInfo(params.subject).key;
-  const total = Math.floor(params.total);
-  const wrong = Math.floor(params.wrong);
-  const blank = Math.max(0, Math.floor(params.blank ?? 0));
-  const accuracy = calcAccuracy(total, wrong, blank);
-  const konkurScore = calcKonkurPercent(total, wrong, blank);
-  const note = params.note?.trim() ? params.note.trim() : null;
-  const today = getTehranToday();
-
-  if (!isSupabaseConfigured()) {
-    const db = readLocalDb();
-    const item: BtTestResult = {
-      id: ++db.seq.tests,
-      user_id: params.userId,
-      subject,
-      total,
-      wrong,
-      blank,
-      accuracy,
-      konkur_score: konkurScore,
-      note,
-      test_date: today,
-      created_at: new Date().toISOString(),
-    };
-    db.tests.push(item);
-    writeLocalDb(db);
-    return item;
-  }
-
-  const { data, error } = await getSupabase()
-    .from("bt_test_results")
-    .insert({
-      user_id: params.userId,
-      subject,
-      total,
-      wrong,
-      blank,
-      accuracy,
-      konkur_score: konkurScore,
-      note,
-      test_date: today,
-    })
-    .select("*")
-    .single();
-  if (error) throw new Error(error.message);
-  return mapTest(data);
-}
-
-export async function deleteTestResult(
-  userId: number,
-  testId: number
-): Promise<boolean> {
-  if (!isSupabaseConfigured()) {
-    const db = readLocalDb();
-    const idx = db.tests.findIndex(
-      (t) => t.id === testId && t.user_id === userId
-    );
-    if (idx === -1) return false;
-    db.tests.splice(idx, 1);
-    writeLocalDb(db);
-    return true;
-  }
-
-  const { error } = await getSupabase()
-    .from("bt_test_results")
-    .delete()
-    .eq("id", testId)
-    .eq("user_id", userId);
-  if (error) throw new Error(error.message);
-  return true;
-}
-
-export async function getUserTestResults(
-  userId: number,
-  limit?: number
-): Promise<BtTestResult[]> {
-  if (!isSupabaseConfigured()) {
-    const db = readLocalDb();
-    const list = db.tests
-      .filter((t) => t.user_id === userId)
-      .sort((a, b) => b.created_at.localeCompare(a.created_at));
-    return limit ? list.slice(0, limit) : list;
-  }
-
-  let q = getSupabase()
-    .from("bt_test_results")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-
-  if (limit) q = q.limit(limit);
-
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => mapTest(r));
-}
-
 export async function getClassLeaderboard(classCode: string): Promise<{
-  classInfo: BtClass | null;
+  classInfo: StadaClass | null;
   members: LeaderboardMember[];
 }> {
   const cleanCode = classCode.trim().toUpperCase();
@@ -706,16 +1355,19 @@ export async function getClassLeaderboard(classCode: string): Promise<{
     const db = readLocalDb();
     const classUsers = db.users.filter((u) => u.class_code === cleanCode);
     const members: LeaderboardMember[] = classUsers.map((u) => {
-      const studySeconds = db.sessions
-        .filter((s) => s.user_id === u.id)
-        .reduce((sum, s) => sum + s.seconds, 0);
-      const userTests = db.tests.filter((t) => t.user_id === u.id);
-      const totalTests = userTests.reduce((sum, t) => sum + t.total, 0);
+      const userLogs = db.logs.filter((l) => l.user_id === u.id);
+      const studySeconds = userLogs.reduce(
+        (sum, l) => sum + l.duration_seconds,
+        0
+      );
+      const totalTests = userLogs.reduce((sum, l) => sum + l.tests_total, 0);
+      const totalPages = userLogs.reduce((sum, l) => sum + l.pages_count, 0);
+      const withAcc = userLogs.filter((l) => l.test_accuracy !== null);
       const avgAcc =
-        userTests.length > 0
+        withAcc.length > 0
           ? Math.round(
-              (userTests.reduce((sum, t) => sum + t.accuracy, 0) /
-                userTests.length) *
+              (withAcc.reduce((s, l) => s + (l.test_accuracy ?? 0), 0) /
+                withAcc.length) *
                 10
             ) / 10
           : 0;
@@ -727,12 +1379,19 @@ export async function getClassLeaderboard(classCode: string): Promise<{
       return {
         id: u.id,
         name: u.name,
+        study_field: u.study_field,
         streak: effectiveStreak,
         study_seconds: studySeconds,
         study_hours: studyHours,
         total_tests: totalTests,
+        total_pages: totalPages,
         avg_accuracy: avgAcc,
-        score: calcCompetitiveScore(studySeconds, effectiveStreak, totalTests),
+        score: calcCompetitiveScore(
+          studySeconds,
+          effectiveStreak,
+          totalTests,
+          totalPages
+        ),
       };
     });
     return { classInfo, members };
@@ -741,7 +1400,7 @@ export async function getClassLeaderboard(classCode: string): Promise<{
   const sb = getSupabase();
   const { data: userRows, error: uErr } = await sb
     .from("bt_users")
-    .select("id, name, streak, last_study_date")
+    .select("id, name, study_field, streak, last_study_date")
     .eq("class_code", cleanCode);
   if (uErr) throw new Error(uErr.message);
 
@@ -751,70 +1410,75 @@ export async function getClassLeaderboard(classCode: string): Promise<{
   }
 
   const userIds = users.map((u) => Number(u.id));
-  const [{ data: sessionRows }, { data: testRows }] = await Promise.all([
-    sb
-      .from("bt_study_sessions")
-      .select("user_id, seconds")
-      .in("user_id", userIds),
-    sb
-      .from("bt_test_results")
-      .select("user_id, total, accuracy")
-      .in("user_id", userIds),
-  ]);
+  const { data: logRows } = await sb
+    .from("bt_study_logs")
+    .select("user_id, duration_seconds, tests_total, pages_count, test_accuracy")
+    .in("user_id", userIds);
 
-  const secByUser = new Map<number, number>();
-  for (const r of sessionRows ?? []) {
-    const uid = Number(r.user_id);
-    secByUser.set(uid, (secByUser.get(uid) ?? 0) + Number(r.seconds ?? 0));
-  }
-
-  const testsByUser = new Map<
+  const agg = new Map<
     number,
-    { totalQuestions: number; accSum: number; count: number }
+    {
+      secs: number;
+      tests: number;
+      pages: number;
+      accSum: number;
+      accCount: number;
+    }
   >();
-  for (const r of testRows ?? []) {
+
+  for (const r of logRows ?? []) {
     const uid = Number(r.user_id);
-    const cur = testsByUser.get(uid) ?? {
-      totalQuestions: 0,
+    const cur = agg.get(uid) ?? {
+      secs: 0,
+      tests: 0,
+      pages: 0,
       accSum: 0,
-      count: 0,
+      accCount: 0,
     };
-    cur.totalQuestions += Number(r.total ?? 0);
-    cur.accSum += Number(r.accuracy ?? 0);
-    cur.count += 1;
-    testsByUser.set(uid, cur);
+    cur.secs += Number(r.duration_seconds ?? 0);
+    cur.tests += Number(r.tests_total ?? 0);
+    cur.pages += Number(r.pages_count ?? 0);
+    if (r.test_accuracy !== null && r.test_accuracy !== undefined) {
+      cur.accSum += Number(r.test_accuracy);
+      cur.accCount += 1;
+    }
+    agg.set(uid, cur);
   }
 
   const members: LeaderboardMember[] = users.map((u) => {
     const uid = Number(u.id);
-    const studySeconds = secByUser.get(uid) ?? 0;
-    const studyHours = Math.round((studySeconds / 3600) * 10) / 10;
-    const tStat = testsByUser.get(uid) ?? {
-      totalQuestions: 0,
+    const st = agg.get(uid) ?? {
+      secs: 0,
+      tests: 0,
+      pages: 0,
       accSum: 0,
-      count: 0,
+      accCount: 0,
     };
+    const studyHours = Math.round((st.secs / 3600) * 10) / 10;
     const effectiveStreak = computeEffectiveStreak(
       Number(u.streak ?? 0),
       u.last_study_date ? String(u.last_study_date) : null
     );
     const avgAccuracy =
-      tStat.count > 0
-        ? Math.round((tStat.accSum / tStat.count) * 10) / 10
+      st.accCount > 0
+        ? Math.round((st.accSum / st.accCount) * 10) / 10
         : 0;
 
     return {
       id: uid,
       name: String(u.name ?? ""),
+      study_field: String(u.study_field || ""),
       streak: effectiveStreak,
-      study_seconds: studySeconds,
+      study_seconds: st.secs,
       study_hours: studyHours,
-      total_tests: tStat.totalQuestions,
+      total_tests: st.tests,
+      total_pages: st.pages,
       avg_accuracy: avgAccuracy,
       score: calcCompetitiveScore(
-        studySeconds,
+        st.secs,
         effectiveStreak,
-        tStat.totalQuestions
+        st.tests,
+        st.pages
       ),
     };
   });

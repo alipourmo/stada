@@ -1,271 +1,217 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { getClassLeaderboard, LeaderboardMember } from "@/lib/db";
-import { toFaDigits } from "@/lib/constants";
+import { getClassLeaderboard } from "@/lib/db";
 import CopyCodeBadge from "@/components/CopyCodeBadge";
+import { toFaDigits } from "@/lib/constants";
 
 export const metadata = {
-  title: "لیدربورد رقابتی",
+  title: "لیدربورد کلاس رقابتی",
 };
 
-type FilterKey = "score" | "study" | "tests" | "streak";
+export default async function LeaderboardPage() {
+  const currentUser = await requireUser();
 
-const FILTER_LABELS: Record<FilterKey, string> = {
-  score: "امتیاز کل",
-  study: "ساعت مطالعه",
-  tests: "تعداد تست",
-  streak: "Streak",
-};
-
-const MEDALS = ["🥇", "🥈", "🥉"];
-
-function getMetricValue(m: LeaderboardMember, filter: FilterKey): number {
-  switch (filter) {
-    case "study":
-      return m.study_hours;
-    case "tests":
-      return m.total_tests;
-    case "streak":
-      return m.streak;
-    default:
-      return m.score;
-  }
-}
-
-export default async function LeaderboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ filter?: string }>;
-}) {
-  const user = await requireUser();
-  const sp = await searchParams;
-  const rawFilter = sp.filter ?? "score";
-  const filter: FilterKey =
-    rawFilter === "study" ||
-    rawFilter === "tests" ||
-    rawFilter === "streak" ||
-    rawFilter === "score"
-      ? rawFilter
-      : "score";
-
-  const { classInfo, members } = user.class_code
-    ? await getClassLeaderboard(user.class_code)
-    : { classInfo: null, members: [] };
-
-  const sortedMembers = [...members].sort(
-    (a, b) => getMetricValue(b, filter) - getMetricValue(a, filter)
-  );
-  const topVal =
-    sortedMembers.length > 0 ? getMetricValue(sortedMembers[0], filter) : 1;
-
-  return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+  if (!currentUser.class_code) {
+    return (
+      <div className="space-y-6">
         <div>
           <h1 className="text-xl font-extrabold text-slate-100 sm:text-[22px]">
-            🏆 لیدربورد رقابتی
+            🏆 لیدربورد رقابتی stada
           </h1>
-          {classInfo && (
-            <div className="mt-2 flex flex-wrap items-center gap-2.5">
-              <span className="text-xs text-slate-400">
-                کلاس:{" "}
-                <strong className="text-[#00ffa3]">{classInfo.name}</strong>
-              </span>
-              <CopyCodeBadge code={classInfo.code} />
-            </div>
-          )}
+          <p className="mt-1 text-xs text-slate-400 sm:text-[13px]">
+            رقابت سالم با دوستان و هم‌کلاسی‌ها بر اساس ساعت مطالعه، صفحات، تست و
+            استریک
+          </p>
         </div>
 
-        {user.class_code && (
+        <div className="bt-card flex flex-col items-center justify-center p-10 text-center">
+          <div className="mb-3 text-4xl">🏫</div>
+          <h2 className="text-lg font-extrabold text-slate-100">
+            هنوز عضو هیچ کلاس رقابتی نیستید
+          </h2>
+          <p className="mt-2 max-w-md text-xs leading-relaxed text-slate-400">
+            می‌توانید گروه مطالعاتی یا کلاس مشاوره خودتان را بسازید و کد دعوت ۶
+            کاراکتری را برای دوستانتان بفرستید، یا با کد دعوت وارد کلاس شوید.
+          </p>
+          <Link
+            href="/class"
+            className="bt-btn-primary mt-5 px-6 py-3 text-sm no-underline"
+          >
+            👥 ساخت یا پیوستن به کلاس رقابتی
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const { classInfo, members } = await getClassLeaderboard(
+    currentUser.class_code
+  );
+  const ranked = [...members].sort((a, b) => b.score - a.score);
+  const medals = ["🥇", "🥈", "🥉"];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-100 sm:text-[22px]">
+            🏆 لیدربورد کلاس «{classInfo?.name ?? currentUser.class_code}»
+          </h1>
+          <p className="mt-1 text-xs text-slate-400 sm:text-[13px]">
+            امتیاز رقابتی ترکیبی از ساعت مطالعه، استریک روزانه، صفحات خوانده‌شده
+            و تست‌های حل‌شده
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {classInfo && <CopyCodeBadge code={classInfo.code} />}
           <Link
             href="/class"
             className="rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-slate-300 no-underline transition hover:bg-white/[0.08]"
           >
-            ⚙️ مدیریت / تغییر کلاس
+            👥 مدیریت کلاس
           </Link>
-        )}
+        </div>
       </div>
 
-      {!user.class_code || !classInfo ? (
-        <div className="bt-card px-5 py-12 text-center">
-          <div className="mb-4 text-5xl">👥</div>
-          <h2 className="text-lg font-bold text-slate-100">
-            عضو کلاسی نیستید
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-xs text-slate-400 sm:text-[13px]">
-            برای رقابت دوستانه با همکلاسی‌ها و رصد رتبه‌بندی مطالعه و تست، یک
-            کلاس جدید بسازید یا با کد دعوت بپیوندید.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link
-              href="/class"
-              className="bt-btn-primary px-6 py-3 text-sm no-underline"
-            >
-              ساختن کلاس جدید
-            </Link>
-            <Link
-              href="/class"
-              className="rounded-xl border border-white/10 bg-white/[0.05] px-6 py-3 text-sm font-semibold text-slate-300 no-underline transition hover:bg-white/[0.1]"
-            >
-              پیوستن با کد کلاس
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Filter Tabs */}
-          <div className="mb-5 flex flex-wrap gap-2">
-            {(Object.keys(FILTER_LABELS) as FilterKey[]).map((key) => {
-              const active = filter === key;
-              return (
-                <Link
-                  key={key}
-                  href={`/leaderboard?filter=${key}`}
-                  className={`rounded-xl border px-4 py-2 text-[13px] no-underline transition ${
-                    active
-                      ? "border-[#00d4ff]/35 bg-[#00d4ff]/12 font-bold text-[#00d4ff]"
-                      : "border-white/10 bg-white/[0.02] text-slate-400 hover:bg-white/[0.05] hover:text-slate-200"
-                  }`}
-                >
-                  {FILTER_LABELS[key]}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Ranked Members */}
-          <div className="space-y-3">
-            {sortedMembers.map((m, idx) => {
-              const isMe = m.id === user.id;
-              const rawVal = getMetricValue(m, filter);
-              const pct =
-                topVal > 0 ? Math.min(100, Math.round((rawVal / topVal) * 100)) : 0;
-              const dispVal =
-                filter === "study"
-                  ? `${m.study_hours}h`
-                  : filter === "streak"
-                    ? `${toFaDigits(m.streak)} 🔥`
-                    : toFaDigits(rawVal);
-
-              const valColor =
-                idx === 0 ? "#ffb347" : isMe ? "#00ffa3" : "#94a3b8";
-              const initial = m.name.trim().slice(0, 1) || "؟";
-
-              return (
+      {/* Top 3 Podium */}
+      {ranked.length >= 3 && (
+        <div className="grid grid-cols-3 items-end gap-3 sm:gap-4">
+          {[ranked[1], ranked[0], ranked[2]].map((item, idx) => {
+            const actualRank = idx === 0 ? 1 : idx === 1 ? 0 : 2;
+            const heights = ["min-h-[148px]", "min-h-[178px]", "min-h-[134px]"];
+            const colors = ["#94a3b8", "#fbbf24", "#cd7c2f"];
+            const color = colors[idx];
+            return (
+              <div
+                key={item.id}
+                className={`bt-card flex flex-col items-center justify-center p-4 text-center ${heights[idx]}`}
+                style={{ borderColor: `${color}45` }}
+              >
+                <div className="mb-1.5 text-2xl sm:text-3xl">
+                  {medals[actualRank]}
+                </div>
+                <div className="line-clamp-1 text-xs font-bold text-slate-100 sm:text-sm">
+                  {item.name}
+                </div>
+                <div className="mt-0.5 line-clamp-1 text-[10px] text-slate-400">
+                  {item.study_field}
+                </div>
                 <div
-                  key={m.id}
-                  className={`flex items-center gap-3.5 rounded-2xl border p-4 transition sm:gap-4 sm:p-5 ${
-                    isMe
-                      ? "border-[#00ffa3]/35 bg-[#00ffa3]/[0.04]"
-                      : "border-white/[0.08] bg-[#0a0f1e]/85"
-                  }`}
+                  className="mt-2 text-lg font-extrabold sm:text-xl"
+                  style={{ color }}
                 >
-                  <div className="w-9 text-center text-2xl">
-                    {idx < 3 ? (
-                      MEDALS[idx]
-                    ) : (
-                      <span
-                        className="text-base font-extrabold text-slate-500"
-                        dir="ltr"
-                      >
-                        #{idx + 1}
-                      </span>
-                    )}
-                  </div>
+                  {toFaDigits(item.score)} امتیاز
+                </div>
+                <div className="mt-0.5 text-[11px] text-slate-500">
+                  ⏱️ {toFaDigits(item.study_hours)}س • 📝{" "}
+                  {toFaDigits(item.total_tests)} تست
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white/10 bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-lg font-bold text-slate-100">
-                    {initial}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`truncate text-[15px] font-bold ${
+      {/* Full Leaderboard Table */}
+      <div className="bt-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-white/[0.07] text-xs text-slate-400">
+                <th className="px-4 py-3.5 text-right font-semibold">رتبه</th>
+                <th className="px-4 py-3.5 text-right font-semibold">
+                  عضو کلاس و رشته
+                </th>
+                <th className="px-4 py-3.5 text-center font-semibold">
+                  امتیاز کل
+                </th>
+                <th className="px-4 py-3.5 text-center font-semibold">
+                  ساعت مطالعه
+                </th>
+                <th className="px-4 py-3.5 text-center font-semibold">صفحات</th>
+                <th className="px-4 py-3.5 text-center font-semibold">تست</th>
+                <th className="px-4 py-3.5 text-center font-semibold">
+                  میانگین دقت
+                </th>
+                <th className="px-4 py-3.5 text-center font-semibold">استریک</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ranked.map((r, i) => {
+                const isMe = r.id === currentUser.id;
+                return (
+                  <tr
+                    key={r.id}
+                    className={`border-b border-white/[0.04] transition ${
+                      isMe ? "bg-[#00ffa3]/[0.06]" : "hover:bg-white/[0.02]"
+                    }`}
+                  >
+                    <td className="px-4 py-3.5 text-base font-bold">
+                      {i < 3 ? medals[i] : toFaDigits(i + 1)}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div
+                        className={`font-semibold ${
                           isMe ? "text-[#00ffa3]" : "text-slate-100"
                         }`}
                       >
-                        {m.name}
-                      </span>
-                      {isMe && (
-                        <span className="rounded-full bg-[#00ffa3]/15 px-2 py-0.5 text-[10px] font-bold text-[#00ffa3]">
-                          شما
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
-                      <span>
-                        ⏱️ <span dir="ltr">{m.study_hours}h</span>
-                      </span>
-                      <span>📝 {toFaDigits(m.total_tests)} تست</span>
-                      <span>🔥 {toFaDigits(m.streak)} روز</span>
-                      {m.avg_accuracy > 0 && (
-                        <span>
-                          🎯 دقت <span dir="ltr">{m.avg_accuracy}%</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-white/[0.05]">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: isMe
-                            ? "#00ffa3"
-                            : idx === 0
-                              ? "#ffb347"
-                              : "#334155",
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="min-w-[70px] text-center">
-                    <div
-                      className="text-2xl leading-none font-extrabold sm:text-[28px]"
-                      style={{ color: valColor }}
+                        {r.name}
+                        {isMe && (
+                          <span className="mr-1.5 text-[11px] text-slate-400">
+                            (شما)
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        {r.study_field}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 text-center font-extrabold text-[#00ffa3]">
+                      {toFaDigits(r.score)}
+                    </td>
+                    <td className="px-4 py-3.5 text-center font-semibold text-slate-200">
+                      {toFaDigits(r.study_hours)} ساعت
+                    </td>
+                    <td className="px-4 py-3.5 text-center text-[#a78bfa]">
+                      {toFaDigits(r.total_pages)}
+                    </td>
+                    <td className="px-4 py-3.5 text-center text-[#ff6b9d]">
+                      {toFaDigits(r.total_tests)}
+                    </td>
+                    <td
+                      className="px-4 py-3.5 text-center font-semibold"
                       dir="ltr"
                     >
-                      {dispVal}
-                    </div>
-                    <div className="mt-1 text-[10px] text-slate-500">
-                      {FILTER_LABELS[filter]}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                      {r.avg_accuracy > 0 ? (
+                        <span className="text-[#00d4ff]">
+                          {r.avg_accuracy}%
+                        </span>
+                      ) : (
+                        <span className="text-slate-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 text-center font-semibold text-[#fb923c]">
+                      🔥 {toFaDigits(r.streak)}
+                    </td>
+                  </tr>
+                );
+              })}
 
-          {/* Scoring Legend */}
-          <div className="bt-card mt-6 border-[#ffb347]/20 p-5">
-            <div className="mb-3 text-[13px] font-bold text-[#ffb347]">
-              🏅 سیستم امتیازدهی رقابتی
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-[#ffb347]/[0.06] p-3.5 text-center">
-                <div className="text-xl font-extrabold text-[#ffb347]">+۱۰</div>
-                <div className="mt-1 text-[11px] text-slate-400">
-                  هر ساعت مطالعه ثبت‌شده
-                </div>
-              </div>
-              <div className="rounded-xl bg-[#ffb347]/[0.06] p-3.5 text-center">
-                <div className="text-xl font-extrabold text-[#ffb347]">+۵</div>
-                <div className="mt-1 text-[11px] text-slate-400">
-                  هر روز پیوستگی (Streak)
-                </div>
-              </div>
-              <div className="rounded-xl bg-[#ffb347]/[0.06] p-3.5 text-center">
-                <div className="text-xl font-extrabold text-[#ffb347]">+۲</div>
-                <div className="mt-1 text-[11px] text-slate-400">
-                  هر سوال تست حل‌شده
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+              {ranked.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="py-10 text-center text-xs text-slate-500"
+                  >
+                    هنوز عضوی در این کلاس ثبت نشده است
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
