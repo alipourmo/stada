@@ -1,0 +1,98 @@
+@import "tailwindcss";
+@import "vazirmatn/Vazirmatn-Variable-font-face.css";
+
+:root {
+  --bg: #030712;
+  --bg1: #0a0f1e;
+  --bg2: #0f172a;
+  --bd: rgba(255, 255, 255, 0.08);
+  --tx: #e2e8f0;
+  --mu: #64748b;
+  --mu2: #94a3b8;
+  --gr: #00ffa3;
+  --bl: #00d4ff;
+  --pk: #ff6b9d;
+  --or: #ffb347;
+  --pu: #c084fc;
+  --rd: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--bg);
+  color: var(--tx);
+  font-family: "Vazirmatn", system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-image:
+    radial-gradient(ellipse 75% 45% at 50% -10%, rgba(0, 255, 163, 0.08), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 85% 15%, rgba(0, 212, 255, 0.05), transparent 60%);
+  background-attachment: fixed;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg2);
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+.bt-card {
+  background: rgba(10, 15, 30, 0.82);
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.bt-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+  padding: 11px 14px;
+  color: var(--tx);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.bt-input:focus {
+  border-color: rgba(0, 255, 163, 0.45);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(0, 255, 163, 0.08);
+}
+
+.bt-btn-primary {
+  background: linear-gradient(135deg, #00ffa3, #00d4ff);
+  color: #030712;
+  border: none;
+  border-radius: 11px;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.bt-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(0, 255, 163, 0.24);
+}
+
+.bt-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
